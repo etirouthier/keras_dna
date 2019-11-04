@@ -142,3 +142,50 @@ def bigwig_to_df(bigfile):
         df = df.append(df_)
     
     return df
+
+def bbi_extractor(interval, bbi_files, final_dummy_axis=False):
+    """
+        Function used to extract the coverage of the given bbi file at the
+        position of the interval.
+    """   
+    if not isinstance(bbi_files, list):
+        bbi_files = [bbi_files]
+    
+    seq = list()
+    for bbi_file in bbi_files:
+        bw = pyBigWig.open(bbi_file)
+        seq.append(np.array(bw.values(interval.chrom,
+                                      interval.start,
+                                      interval.stop)))
+    seq =  np.array(seq).T
+    
+    if final_dummy_axis:
+        seq = seq.reshape((seq.shape[0],
+                           seq.shape[1],
+                           1))
+    return seq
+
+def reverse_complement_fa(seq):
+    seq = seq[::-1]
+    seq = seq.replace('A', '1')
+    seq = seq.replace('C', '2')
+    seq = seq.replace('T', 'A')
+    seq = seq.replace('G', 'C')
+    seq = seq.replace('1', 'T')
+    seq = seq.replace('2', 'G')
+    
+    return seq
+
+def reverse_complement(seqs, labels, bbi_seqs=None):
+    for i in range(len(seqs)):
+        seqs[i] = reverse_complement_fa(seqs[i])
+        
+    if len(labels.shape) == 4:
+        labels = labels[:, ::-1, :, :]
+    
+    if bbi_seqs is not None:
+        bbi_seqs = bbi_seqs[:, ::-1]
+    
+        return seqs, bbi_seqs, labels
+    else:
+        return seqs, labels

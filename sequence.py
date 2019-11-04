@@ -11,6 +11,8 @@ import numpy as np
 from copy import deepcopy
 import intervals as I 
 import pybedtools
+import random
+import warnings
 
 
 from kipoi.metadata import GenomicRanges
@@ -19,10 +21,9 @@ from kipoi_utils.utils import default_kwargs
 
 
 from kipoiseq.extractors import FastaStringExtractor
-from kipoiseq.dataloaders.sequence import BedDataset
 from kipoiseq.transforms import ReorderedOneHot
-from kipoiseq.transforms.functional import resize_interval
-from kipoiseq.utils import parse_dtype, DNA
+from kipoiseq.transforms.functional import resize_interval, fixed_len
+from kipoiseq.utils import DNA
 
 
 from MyModuleLibrary.array_modifier import rolling_window
@@ -77,9 +78,10 @@ class SparseDataset(object):
             'all' means that all the negative example are returned.
             default=1
         negative_type:
-            {'real', None} if real the negative example will be taken from
-            sequences far enough from any annotation example. If None this
-            function will return only positive example,
+            {'real', 'random', None} if real the negative example will be taken
+            from sequences far enough from any annotation example. If None this
+            function will return only positive example, 'random' will return 
+            interval of length 0.
             default='real'
     """
     def __init__(self, annotation_files,
@@ -122,10 +124,7 @@ class SparseDataset(object):
             if annotation_file.endswith('.bed'):
                 df_ann_list.append(utils.bed_to_df(annotation_file,
                                                    self.annotation_list))
-            if annotation_file.endswith('.gff'):
-                df_ann_list.append(utils.gff_to_df(annotation_file,
-                                                   self.annotation_list))
-            if annotation_file.endswith('.gtf'):
+            if annotation_file.endswith(('.gff', 'gff3', 'gtf')):
                 df_ann_list.append(utils.gff_to_df(annotation_file,
                                                    self.annotation_list))
 
@@ -157,8 +156,13 @@ class SparseDataset(object):
 
         if not self.ignore_targets:
             self.labels = self._get_labels()
-            
-        if self.negative_type == 'real':
+        
+        if self.negative_type == 'random':
+            assert isinstance(self.negative_ratio, int), \
+            'To use random negative sequence negative_ratio must be an integer'
+            self._random_negative_class()
+        
+        elif self.negative_type == 'real':
             neg_df, neg_label = self._negative_class()
             self.df = self.df.append(neg_df)
             
@@ -168,30 +172,47 @@ class SparseDataset(object):
     def __getitem__(self, idx):
         """Returns (pybedtools.Interval, labels)"""
         if not isinstance(idx, list):
-            idx = list(idx)
+            idx = [idx]
         row = self.df.iloc[idx]
         
         if self.ignore_targets:
             labels = {}
         else:
             labels = self.labels[idx]
+            index = []
 
         intervals = list()
         
         if 'strand' in self.df.columns:
             for i in range(len(idx)):
                 row_ = row.iloc[i]
-                intervals.append(pybedtools.create_interval_from_list([row_.chrom,
-                                                                       row_.start,
-                                                                       row_.stop,
-                                                                       row_.strand]))
+                try:
+                    intervals.append(pybedtools.create_interval_from_list([row_.chrom,
+                                                                           int(row_.start),
+                                                                           int(row_.stop),
+                                                                           '.', '.',
+                                                                           row_.strand]))
+                    if not self.ignore_targets:
+                        index.append(i)
+
+                except OverflowError:
+                    warnings.warn("""Some of the input sequence were out of range
+                                  and have been removed""")
+
         else:
             for i in range(len(idx)):
                 row_ = row.iloc[i]
-                intervals.append(pybedtools.create_interval_from_list([row_.chrom,
-                                                                       row_.start,
-                                                                       row_.stop]))
-        return intervals, labels
+                try:
+                    intervals.append(pybedtools.create_interval_from_list([row_.chrom,
+                                                                           int(row_.start),
+                                                                           int(row_.stop)]))
+                    if not self.ignore_targets:
+                        index.append(i)
+
+                except OverflowError:
+                    warnings.warn("""Some of the input sequence were out of range
+                                  and have been removed""")
+        return intervals, labels[index]
 
     def __len__(self):
         return len(self.df)
@@ -282,6 +303,29 @@ class SparseDataset(object):
                 return start - half_wx - wx % 2, stop + half_wx, df.strand.values
             else:
                 return start - half_wx - wx % 2, stop + half_wx
+
+    def _random_negative_class(self):
+        chrom = self.df.chrom.unique()[0]
+        number_neg = self.negative_ratio * len(self.df)
+
+        neg_df = pd.DataFrame()
+        neg_df['start'] = np.zeros((number_neg,))
+        neg_df['stop'] = np.zeros((number_neg,))
+        neg_df['chrom'] = chrom
+        
+        if 'strand' in self.ann_df.columns:
+            neg_df['strand'] = np.random.choice(['+', '-'], number_neg)
+            
+        self.df = self.df.append(neg_df)
+
+        if not self.ignore_targets:
+            neg_shape = list(self.labels.shape)
+            neg_shape[0] = number_neg
+            neg_label = np.zeros(tuple(neg_shape))
+
+            self.labels = np.append(self.labels,
+                                    neg_label,
+                                    axis=0)
 
     def _negative_class(self):
         neg_df = pd.DataFrame()
@@ -549,7 +593,7 @@ class ContinuousDataset(object):
                 wig file. Two columns: chromosome name and length'''
                 df_ann_list.append(utils.wig_to_df(annotation_file,
                                                         self.chrom_size))
-            if annotation_file.endswith('.bigwig'):
+            if annotation_file.endswith('.bw'):
                 df_ann_list.append(utils.bigwig_to_df(annotation_file))
         self.annotation_dataframes = df_ann_list        
         
@@ -702,7 +746,7 @@ class ContinuousDataset(object):
     def __getitem__(self, idx):
         """Returns (pybedtools.Interval, labels)"""
         if not isinstance(idx, list):
-            idx = list(idx)
+            idx = [idx]
         row = self.df.iloc[idx]
 
         if self.ignore_targets:
@@ -725,38 +769,40 @@ class ContinuousDataset(object):
 
 class StringSeqIntervalDl(Dataset):
     """
-    info:
-        doc: >
-           Dataloader for a combination of fasta and a file with annotations.
-           The dataloader extracts regions from the fasta file corresponding to
-           the `annotation_file`. Returned sequences are of the type np.array([str]).
+    Dataloader for a combination of fasta and a file with annotations.
+    The dataloader extracts regions from the fasta file corresponding to
+    the `annotation_file`. Returned sequences are of the type np.array([str]),
+    possibly the corresponding occupancy taken from a bbi file can be passed as
+    secondary input.
+    
     args:
-        annotation_file:
-            doc: bed3+<columns> file path containing intervals + (optionally) labels,
-            hdf5 files with a continuous annotation along the genome, one
-            dataset is one chromosome
-            gff3 file with the annotations. (to be done)
+        annotation_files:
+            list of file with annotations (wig, bigWig or bedGraph / bed, gff)
         fasta_file:
-            doc: Reference genome FASTA file path.
-        num_chr_fasta:
-            doc: True, the the dataloader will make sure that the chromosomes
-            don't start with chr.
-        label_dtype:
-            doc: None, datatype of the task labels taken from the
-            annotation_file. Example - str, int, float, np.float32
-        auto_resize_len:
-            doc: None, required sequence length.
-        # max_seq_len:
-        #     doc: maximum allowed sequence length
-        # use_strand:
-        #     doc: reverse-complement fasta sequence if bed file defines
-        #     negative strand
+            Reference genome FASTA file path.
         force_upper:
-            doc: Force uppercase output of sequences
-        ignore_targets:
-            doc: if True, don't return any target variables
-        args: arguments to be passed to the dataset reader
-        kwargs: dictionnary of arguments specific to the dataset reader
+            Force uppercase output of sequences
+        use_strand:
+            boolean, whether or not to respect the strand for spare annotation.
+            If false all the sequence are ridden in 5'.
+        bbi_input:
+            Path to another bbi file, the corresponding coverage on the interval
+            will be used as a secondary input. (bigWig or bigBed)
+            default=None
+        bbi_input_length:
+            {int, 'maxlen'}, Length of the secondary sequences to be used as
+            input. If maxlen the length will be the same as the DNA seq.
+            default=None
+        bbi_dummy:
+            boolean, whether or not to add a final dummy axis to the second
+            input.
+        rc:
+            boolean, if true the batch is reversed complemented.
+            default=False
+        args: 
+            Arguments to be passed to the dataset reader
+        kwargs: 
+           Dictionnary of arguments specific to the dataset reader
     output_schema:
         inputs:
             name: seq
@@ -772,86 +818,136 @@ class StringSeqIntervalDl(Dataset):
                 type: GenomicRanges
                 doc: Ranges describing inputs.seq
     """
-    #@profile
     def __init__(self,
-                 annotation_file,
+                 annotation_files,
                  fasta_file,
-                 num_chr_fasta=False,
-                 label_dtype=None,
-                 auto_resize_len=None,
-                 # max_seq_len=None,
-                 # use_strand=False,
-                 force_upper=True,
-                 ignore_targets=False,
+                 use_strand=False,
+                 bbi_input=None,
+                 bbi_input_length=None,
+                 bbi_dummy=False,
+                 force_upper=False,
+                 rc=False,
                  *args,
                  **kwargs):
-
-        self.num_chr_fasta = num_chr_fasta
-        self.annotation_file = annotation_file
+        self.annotation_files = annotation_files
         self.fasta_file = fasta_file
-        self.auto_resize_len = auto_resize_len
-        # self.use_strand = use_strand
+        self.use_strand = use_strand
         self.force_upper = force_upper
-        # self.max_seq_len = max_seq_len
-
-        # if use_strand:
-        #     # require a 6-column bed-file if strand is used
-        #     bed_columns = 6
-        # else:
-        #     bed_columns = 3
-
         self.fasta_extractors = None
-        
-        if isinstance(self.annotation_file, list):
-            annotation_file = self.annotation_file[0]
+        self.pad_seq = False
+        self.bbi_input = bbi_input
+        self.bbi_input_length = bbi_input_length
+        self.bbi_dummy = bbi_dummy
+        self.rc = rc
 
-        if annotation_file.endswith('.bed'):
-           self.dataset = BedDataset(self.annotation_file,
-                                     num_chr=self.num_chr_fasta,
-                                     bed_columns=3,
-                                     label_dtype=parse_dtype(label_dtype),
-                                     ignore_targets=ignore_targets)
-        elif annotation_file.endswith('.hdf5'):
-            self.dataset = ContinuousDataset(self.annotation_file,
-                                             num_chr=num_chr_fasta,
-                                             ignore_targets=ignore_targets,
+        if not isinstance(self.annotation_files, list):
+            self.annotation_files = [self.annotation_files]
+
+        if self.annotation_files[0].endswith(('.bed', '.gff', 'gff3', 'gtf')):
+           self.dataset = SparseDataset(annotation_files = self.annotation_files,
+                                        *args,
+                                        **kwargs)
+
+           if self.dataset.seq_len == 'real':
+               self.pad_seq = True
+
+        elif self.annotation_files[0].endswith(('.wig', '.bw', 'bedGraph')):
+            self.dataset = ContinuousDataset(annotation_files = self.annotation_files,
                                              *args,
                                              **kwargs)
-        #elif annotation_file.endswith('.gff3'):
-        #   self.dataset = GffDataset(self.annotation_file) to do
-
+        if self.bbi_input_length is None:
+            try:
+                self.bbi_input_length = self.dataset.length
+            except AttributeError:
+                self.bbi_input_length = self.dataset.window
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
         if not isinstance(idx, list):
-            idx = list(idx)
-        if self.fasta_extractors is None:
-            self.fasta_extractors = FastaStringExtractor(self.fasta_file,
-                                                         use_strand=False,  # self.use_strand,
-                                                         force_upper=self.force_upper)
+            idx = [idx]
+
+        self.fasta_extractors = FastaStringExtractor(self.fasta_file,
+                                                     use_strand=self.use_strand,
+                                                     force_upper=self.force_upper)
 
         intervals, labels = self.dataset[idx]
+        seqs = list()
 
-        if self.auto_resize_len:
-            # automatically resize the sequence to cerat
-            intervals = [resize_interval(interval, self.auto_resize_len,
-                                         anchor='center') for interval in intervals]
+        if self.use_strand:
+            negative_strand = list()
 
-        # Run the fasta extractor and transform if necessary
-        seq = [self.fasta_extractors.extract(interval)for interval in intervals]
+            assert hasattr(intervals[0], 'strand'),\
+            '''Strand need to be specified to use use_strand'''
 
-        return {
-            "inputs": np.array(seq),
-            "targets": labels,
-            "metadata": {
-                "ranges": [GenomicRanges(interval.chrom,
-                                         interval.start,
-                                         interval.stop,
-                                         str(idx_)) for interval, idx_ in zip(intervals, idx)] 
+            for i in range(len(intervals)):
+                interval = intervals[i]
+                if interval.length == 0:
+                    seqs.append(''.join(random.choices('ATGC',
+                                                       k=self.dataset.length)))
+                elif interval.strand == '-':
+                    seqs.append(self.fasta_extractors.extract(interval))
+                    negative_strand.append(i)
+                else:
+                    seqs.append(self.fasta_extractors.extract(interval))
+
+            if self.dataset.seq2seq == True:
+                labels[negative_strand] = labels[negative_strand, ::-1, :, :]
+
+        else:  
+            for interval in intervals:
+                if interval.length == 0:
+                    seqs.append(''.join(random.choices('ATGC',
+                                                       k=self.dataset.length)))
+                else:
+                    seqs.append(self.fasta_extractors.extract(interval) )
+
+        if self.pad_seq:
+                seqs = [fixed_len(seq,
+                             int(self.dataset.length),
+                             anchor="center",
+                             value="N") for seq in seqs]
+
+        if self.bbi_input:
+            seqs_bbi = [utils.bbi_extractor(resize_interval(interval,
+                                                            self.bbi_input_length,
+                                                            anchor='center'),
+                                      self.bbi_input,
+                                      self.bbi_dummy) for interval in intervals]
+
+            seqs_bbi = np.array(seqs_bbi)
+            if self.use_strand:
+                seqs_bbi[negative_strand] = seqs_bbi[negative_strand, ::-1]            
+
+            if self.rc:
+                seqs, seq_bbi, labels = utils.reverse_complement(seqs,
+                                                                 labels,
+                                                                 seqs_bbi)
+
+            return {
+                "inputs": [np.array(seqs), seqs_bbi],
+                "targets": labels,
+                "metadata": {
+                    "ranges": [GenomicRanges(interval.chrom,
+                                             interval.start,
+                                             interval.stop,
+                                             str(idx_)) for interval, idx_ in zip(intervals, idx)] 
+                }
             }
-        }
+        else:
+            if self.rc:
+                seqs, labels = utils.reverse_complement(seqs, labels)
+            return {
+                "inputs": np.array(seqs),
+                "targets": labels,
+                "metadata": {
+                    "ranges": [GenomicRanges(interval.chrom,
+                                             interval.start,
+                                             interval.stop,
+                                             str(idx_)) for interval, idx_ in zip(intervals, idx)] 
+                }
+            }
 
     @classmethod
     def get_output_schema(cls):
@@ -862,6 +958,7 @@ class StringSeqIntervalDl(Dataset):
             output_schema.targets = None
             return output_schema
         
+
 class SeqIntervalDl(Dataset):
     """
     info:
@@ -873,24 +970,6 @@ class SeqIntervalDl(Dataset):
             with the shape inferred from the arguments: `alphabet_axis` and
             `dummy_axis`.
     args:
-        annotation_file:
-            doc: bed3+<columns> file path containing intervals + (optionally) labels,
-            hdf5 file with a continuous annotation along the genome, one
-            dataset is one chromosome
-            gff3 file with the annotations. (to be done)
-        fasta_file:
-            doc: Reference genome FASTA file path.
-        num_chr_fasta:
-            doc: True, the the dataloader will make sure that the chromosomes
-            don't start with chr.
-        label_dtype:
-            doc: 'None, datatype of the task labels taken from the annotation_file.
-            Example: str, int, float, np.float32'
-        auto_resize_len:
-            doc: None, required sequence length.
-        # use_strand:
-        #     doc: reverse-complement fasta sequence if bed file defines
-        #     negative strand
         alphabet_axis:
             doc: axis along which the alphabet runs (e.g. A,C,G,T for DNA)
         dummy_axis:
@@ -901,12 +980,10 @@ class SeqIntervalDl(Dataset):
                 alphabet to use for the one-hot encoding. This defines the
                 order of the one-hot encoding.
                 Can either be a list or a string: 'ACGT' or ['A, 'C', 'G', 'T'].
-                Default: 'ATGC'
+                Default: 'ACGT
         dtype:
             doc: 'defines the numpy dtype of the returned array.
             Example: int, np.int32, np.float32, float'
-        ignore_targets:
-            doc: if True, don't return any target variables
         args: arguments specific to the different dataloader that can be used
         kwargs: dictionnary with specific arguments to the dataloader.
     output_schema:
@@ -926,28 +1003,14 @@ class SeqIntervalDl(Dataset):
     """
     #@profile
     def __init__(self,
-                 annotation_file,
-                 fasta_file,
-                 num_chr_fasta=False,
-                 label_dtype=None,
-                 auto_resize_len=None,
-                 # max_seq_len=None,
-                 # use_strand=False,
                  alphabet_axis=1,
                  dummy_axis=None,
                  alphabet=DNA,
-                 ignore_targets=False,
                  dtype=None,
                  *args,
                  **kwargs):
         # core dataset, not using the one-hot encoding params
-        self.seq_dl = StringSeqIntervalDl(annotation_file, fasta_file,
-                                          num_chr_fasta=num_chr_fasta,
-                                          label_dtype=label_dtype,
-                                          auto_resize_len=auto_resize_len,
-                                          # use_strand=use_strand,
-                                          ignore_targets=ignore_targets,
-                                          *args,
+        self.seq_dl = StringSeqIntervalDl(*args,
                                           **kwargs)
 
         self.input_transform = ReorderedOneHot(alphabet=alphabet,
@@ -960,7 +1023,15 @@ class SeqIntervalDl(Dataset):
     #@profile
     def __getitem__(self, idx):
         ret = self.seq_dl[idx]
-        ret['inputs'] = np.array([self.input_transform(str(ret["inputs"][i])) for i in range(len(ret))])
+        
+        if self.seq_dl.bbi_input:
+            length = len(ret['inputs'][0])
+            ret['inputs'] = [np.array([self.input_transform(str(ret["inputs"][0][i]))\
+                             for i in range(length)]), ret['inputs'][1]]
+        else:   
+            length = len(ret['inputs'])
+            ret['inputs'] = np.array([self.input_transform(str(ret["inputs"][0][i]))\
+                            for i in range(length)])
         return ret
 
     @classmethod
