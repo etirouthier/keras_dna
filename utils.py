@@ -86,6 +86,8 @@ def gff_to_df(gff_file, annotation_list):
     chroms, starts, stops, labels = [], [], [], []
     if not gff_file[0].strand == '.':
         strands = []
+    else:
+        strands=None
     
     gff_file = gff_file.filter(lambda x : x.fields[2] in annotation_list)
     
@@ -95,10 +97,10 @@ def gff_to_df(gff_file, annotation_list):
         stops.append(gff.stop)
         labels.append(gff.fields[2])
         
-        if strands:
+        if isinstance(strands, list):
             strands.append(gff.strand)
     
-    if strands:
+    if isinstance(strands, list):
         df = pd.DataFrame({'chrom': chroms,
                            'start': starts,
                            'stop': stops,
@@ -179,9 +181,7 @@ def reverse_complement_fa(seq):
 def reverse_complement(seqs, labels, bbi_seqs=None):
     for i in range(len(seqs)):
         seqs[i] = reverse_complement_fa(seqs[i])
-        
-    if len(labels.shape) == 4:
-        labels = labels[:, ::-1, :, :]
+    labels = labels[:, ::-1]
     
     if bbi_seqs is not None:
         bbi_seqs = bbi_seqs[:, ::-1]

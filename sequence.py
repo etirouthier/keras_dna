@@ -13,21 +13,21 @@ import intervals as I
 import pybedtools
 import random
 import warnings
+import pyBigWig
 
 
 from kipoi.metadata import GenomicRanges
 from kipoi.data import Dataset
 from kipoi_utils.utils import default_kwargs
-
-
 from kipoiseq.extractors import FastaStringExtractor
 from kipoiseq.transforms import ReorderedOneHot
-from kipoiseq.transforms.functional import resize_interval, fixed_len
+from kipoiseq.transforms.functional import fixed_len
 from kipoiseq.utils import DNA
 
 
-from MyModuleLibrary.array_modifier import rolling_window
 import utils
+from extractors import bbi_extractor
+
 
 class SparseDataset(object):
     """
@@ -139,7 +139,7 @@ class SparseDataset(object):
         elif isinstance(self.seq_len, int):
             self.length = self.seq_len
         else:
-            raise('seq_len should be "MAXLEN", "real" or an integer')
+            raise NameError('seq_len should be "MAXLEN", "real" or an integer')
 
         if self.num_chr and self.ann_df.iloc[0][0].startswith("chr"):
             self.df[0] = self.ann_df[0].str.replace("^chr", "")
@@ -234,7 +234,7 @@ class SparseDataset(object):
     
     def _restrict(self):
         assert 'strand' in self.ann_df.columns,\
-        'The data need to specify the strand'
+        'The data need to specify the strand to use restrict'
         
         df = self.ann_df
         if self.predict == 'start':
@@ -395,7 +395,7 @@ class SparseDataset(object):
             
             return neg_df.iloc[indexes], labels
         else:
-            raise('negative_ratio should be "all" or an integer')
+            raise NameError('negative_ratio should be "all" or an integer')
 
     def _get_dataframe(self):
         new_df = pd.DataFrame()
@@ -514,24 +514,26 @@ class ContinuousDataset(object):
     args:
         annotation_files:
             list of file with annotations (wig, bigWig or bedGraph)
-        nb_annotation_type:
-            number of different annotations, all the files concerning an an-
-            notation must be grouped in the list of file. All cellular type or
-            experimental condition must own the same number of files.
-        window:
+         window:
             the length of the intervals.
         tg_window:
             the length of the target window (should be a divisor of the window
             length if downsampling). default=1
-        chrom_size:
-            a two columns file with chromosomes name and the corresponding
-            length. Mandatory for bedGraph or wig files.
-            default=None
+        nb_annotation_type:
+            The number of different annotation in input files. The same number
+            of files must be passed for every annotation.
+            The list must be organised as [file1_ann1, file1_ann2, file2_ann1,
+            file2_ann2], with file1, file2 designing two differents kind of
+            files (different lab, different cellular type ...).
+            If None the output shape will be (batch_size, tg_window, nb_of_file)
         downsampling:
             {None, 'mean', 'downsampling'}, how the label is created, if None
             the label is the original values at the center of the interval, if
             'mean' downsampling by averaging on N values recursively,
             if 'downsampling' taking the first value every N values.
+            default=None
+        normalization_mode:
+            arguments from Normalizer class to normalize the data.
             default=None
         overlapping:
             boolean, weither or not to return all the possible intervals, if
@@ -550,11 +552,11 @@ class ContinuousDataset(object):
             if True, target variables are ignored, default=False
     """
     def __init__(self, annotation_files,
-                       nb_annotation_type,
                        window,
                        tg_window=1,
-                       chrom_size=None,
+                       nb_annotation_type=None,
                        downsampling=None,
+                       normalization_mode=None,
                        overlapping=True,
                        num_chr=False,
                        incl_chromosomes=None,
@@ -566,8 +568,8 @@ class ContinuousDataset(object):
         self.window = window
         self.hw = window // 2
         self.tg_window = tg_window
-        self.chrom_size = chrom_size
         self.downsampling = downsampling
+        self.normalization_mode = normalization_mode
         self.overlapping = overlapping
         self.num_chr = num_chr
         self.incl_chromosomes = incl_chromosomes
@@ -579,193 +581,99 @@ class ContinuousDataset(object):
         if not isinstance(self.annotation_files, list):
             self.annotation_files = [self.annotation_files]
             
-        df_ann_list = list()
-        for annotation_file in self.annotation_files:
-            if annotation_file.endswith('.bedGraph'):
-                assert self.chrom_size is not None,\
-                '''A file with the chromosome length should be passed to use
-                bedGraph file. Two columns: chromosome name and length'''
-                df_ann_list.append(utils.bedGraph_to_df(annotation_file,
-                                                        self.chrom_size))
-            if annotation_file.endswith('.wig'):
-                assert self.chrom_size is not None,\
-                '''A file with the chromosome length should be passed to use
-                wig file. Two columns: chromosome name and length'''
-                df_ann_list.append(utils.wig_to_df(annotation_file,
-                                                        self.chrom_size))
-            if annotation_file.endswith('.bw'):
-                df_ann_list.append(utils.bigwig_to_df(annotation_file))
-        self.annotation_dataframes = df_ann_list        
-        
         # omit data outside chromosomes
-        for index in range(len(self.annotation_dataframes)):
-            if incl_chromosomes is not None:
-                ann_df = self.annotation_dataframes[index]
-                ann_df = ann_df[ann_df.chrom.isin(incl_chromosomes)]
-                self.annotation_dataframes[index] = ann_df
-            if excl_chromosomes is not None:
-                ann_df = self.annotation_dataframes[index]
-                ann_df = ann_df[~ann_df.chrom.isin(excl_chromosomes)]
-                self.annotation_dataframes[index] = ann_df
+        bw = pyBigWig.open(self.annotation_files[0])
+        self.chrom_size = dict()
         
-        self.chr_list = np.unique(self.annotation_dataframes[0].chrom,
-                                  return_counts=True)
+        if incl_chromosomes is not None:
+            for name, size in bw.chroms().items():
+                if name in incl_chromosomes:
+                    self.chrom_size[name] = size
+                    
+        elif excl_chromosomes is not None:
+            for name, size in bw.chroms().items():
+                if name not in excl_chromosomes:
+                    self.chrom_size[name] = size
+        else:
+            self.chrom_size = bw.chroms()
+        bw.close()
         
+        self.asteps=1
+        if not self.downsampling:
+            if not self.overlapping:
+                self.asteps = self.tg_window
+
+        else:
+            if not self.overlapping:
+                self.asteps = self.window
+
         self.df = self._get_dataframe()
-        
+
         if not self.ignore_targets:
-            self.labels = self._get_labels()
+            self.extractor = bbi_extractor(self.annotation_files,
+                                           self.tg_window,
+                                           self.nb_annotation_type,
+                                           self.downsampling,
+                                           self.normalization_mode)
 
         if self.num_chr and self.df.iloc[0][0].startswith("chr"):
             self.df.chrom = self.df.chrom.str.replace("^chr", "")
         if not self.num_chr and not self.df.iloc[0][0].startswith("chr"):
             self.df.chrom = "chr" + self.df.chrom
-
-    def _calculate_rolling_mean(self, x):
-        sampling_length = self.window // self.tg_window
-        nb_windows = len(x)
-        num_classes = len(self.annotation_dataframes)
-        x = rolling_window(x,
-                           window=(nb_windows, sampling_length, num_classes),
-                           asteps=(nb_windows, sampling_length, num_classes))
-        x = x.reshape((self.tg_window, nb_windows, sampling_length, num_classes))
-        x = np.mean(x, axis=2, dtype='float32')
-        x = np.swapaxes(x, 0, 1)
-        return x
     
     def _get_dataframe(self):
-        new_df = pd.DataFrame()
-        chrom_array = np.array([])
-        pos_on_chr = np.array([])
-        asteps=1
+        chrom = list()
+        start = list()
+        stop = list()
+        first_index = list()
+        last_index = list()
+        
+        for name, size in self.chrom_size.items():
+            chrom.append(name)
+            start.append(self.hw)
+            stop.append(size - self.hw + 1 - (self.window % 2))
+            first_index.append(0)
+            last_index.append((stop[-1] - start[-1]) // self.asteps)
+        
+        last_index = np.cumsum(last_index)
+        first_index[1:] = last_index[:-1]
 
-        if not self.downsampling:
-            if not self.overlapping:
-                asteps = self.tg_window
-
-        else:
-            if not self.overlapping:
-                asteps = self.window
-
-        for chrom, chrom_length in zip(self.chr_list[0], self.chr_list[1]):
-            final_range = chrom_length - self.hw + 1 -(self.window % 2)
-            pos_on_chr_ = np.arange(self.hw, final_range, asteps)
-            pos_on_chr = np.append(pos_on_chr, pos_on_chr_)
-            
-            chrom_array = np.append(chrom_array,
-                                    np.repeat(chrom, len(pos_on_chr_)))
-
-        new_df['chrom'] = chrom_array
-        new_df['pos_on_chr'] = pos_on_chr.astype(int)
-
+        new_df = pd.DataFrame({'chrom' : chrom,
+                               'start' : start,
+                               'stop' : stop,
+                               'first_index' : first_index,
+                               'last_index' : last_index})
         return new_df
     
-    def _get_labels(self):
-        endview = self.window - self.tg_window        
-        density = np.zeros((1, self.tg_window,
-                            len(self.annotation_dataframes)))
-        asteps=1
+    def _get_interval(self, idx):
+        indicative_mat = (np.sign(self.df.first_index.values - idx)) *\
+                         (np.sign(self.df.last_index.values - idx))
+        df_idx = np.where(indicative_mat <= 0)[0][-1]
 
-        if not self.downsampling:
-
-            if not self.overlapping:
-                asteps = self.tg_window
-
-            for chrom in self.chr_list[0]:
-                nb_windows = len(self.df.chrom[self.df.chrom == chrom])
-                if endview != 0:
-                    views = [rolling_window(ann_df[ann_df.chrom == chrom].label.values[endview // 2 : - endview // 2],
-                                            window=self.tg_window,
-                                            asteps=asteps) for ann_df in self.annotation_dataframes]
-                else:
-                    views = [rolling_window(ann_df[ann_df.chrom == chrom].label.values,
-                                            window=self.tg_window,
-                                            asteps=asteps) for ann_df in self.annotation_dataframes]
-
-                views = [view.reshape((-1, self.tg_window, 1)) for view in views]
-                density_ = np.concatenate([view[:nb_windows] for view in views],
-                                           axis=2)
-                density = np.append(density, density_, axis=0)
-
-        elif self.downsampling == 'downsampling':
-
-            if not self.overlapping:
-                asteps = self.window
-
-            assert self.window % self.tg_window == 0, \
-            '''The length of the output should divide the length of the input to
-            use downsampling'''
-            sampling_length = self.window // self.tg_window
-
-            for chrom, chrom_length in zip(self.chr_list[0], self.chr_list[1]):
-                nb_windows = len(self.df.chrom[self.df.chrom == chrom])
-
-                views = [rolling_window(ann_df[ann_df.chrom == chrom].label.values,
-                                        window=self.tg_window,
-                                        wsteps=sampling_length,
-                                        asteps=asteps) for ann_df in self.annotation_dataframes]
-                views = [view.reshape((-1, self.tg_window, 1)) for view in views]
-
-                density_ = np.concatenate([view[:nb_windows] for view in views],
-                                           axis=2)
-                density = np.append(density, density_, axis=0)
-
-        elif self.downsampling == 'mean':
-
-            if not self.overlapping:
-                asteps = self.window
-
-            assert self.window % self.tg_window == 0, \
-            'The length of the output should devide the length of the input to use downsampling'
-    
-            for chrom, chrom_length in zip(self.chr_list[0], self.chr_list[1]):
-                nb_windows = len(self.df.chrom[self.df.chrom == chrom])
-
-                views = [rolling_window(ann_df[ann_df.chrom == chrom].label.values,
-                                        window=self.window,
-                                        asteps=asteps) for ann_df in self.annotation_dataframes]
-                views = [view.reshape((-1, self.window, 1)) for view in views]
-
-                density_ = np.concatenate([view[:nb_windows] for view in views],
-                                           axis=2)
-                density_ = self._calculate_rolling_mean(density_)
-
-                density = np.append(density, density_, axis=0)
-
-        density = density[1:]
-
-        assert len(self.annotation_dataframes) % self.nb_annotation_type == 0,\
-        'nb_annotation_type must divide the number of input file'
-        density = density.reshape((-1,
-                                   self.tg_window,
-                                   len(self.annotation_dataframes) // self.nb_annotation_type,
-                                   self.nb_annotation_type))
-
-        return density
+        row = self.df.iloc[df_idx]
+        start = row.start + (idx - row.first_index) * self.asteps - self.hw
+        stop = row.start + (idx - row.first_index) * self.asteps + self.hw + (self.window % 2)
+        interval = pybedtools.create_interval_from_list([row.chrom,
+                                                         int(start),
+                                                         int(stop)])
+        return interval
 
     def __getitem__(self, idx):
         """Returns (pybedtools.Interval, labels)"""
         if not isinstance(idx, list):
             idx = [idx]
-        row = self.df.iloc[idx]
 
+        intervals = [self._get_interval(index) for index in idx]
+        
         if self.ignore_targets:
             labels = {}
         else:
-            labels = self.labels[idx]
+            labels = np.array([self.extractor.extract(interval) for interval in intervals])
 
-        intervals = list()
-        for i in range(len(idx)):
-            row_ = row.iloc[i]
-            intervals.append(pybedtools.create_interval_from_list([row_.chrom,
-                                                                   int(row_.pos_on_chr) - self.hw,
-                                                                   int(row_.pos_on_chr) + \
-                                                                   self.hw + \
-                                                                   self.window % 2])) 
         return intervals, labels
 
     def __len__(self):
-        return len(self.df)
+        return self.df.last_index.values[-1]
 
 class StringSeqIntervalDl(Dataset):
     """
@@ -773,7 +681,7 @@ class StringSeqIntervalDl(Dataset):
     The dataloader extracts regions from the fasta file corresponding to
     the `annotation_file`. Returned sequences are of the type np.array([str]),
     possibly the corresponding occupancy taken from a bbi file can be passed as
-    secondary input.
+    secondary input or targets.
     
     args:
         annotation_files:
@@ -785,17 +693,27 @@ class StringSeqIntervalDl(Dataset):
         use_strand:
             boolean, whether or not to respect the strand for spare annotation.
             If false all the sequence are ridden in 5'.
-        bbi_input:
-            Path to another bbi file, the corresponding coverage on the interval
-            will be used as a secondary input. (bigWig or bigBed)
+        sec_inputs:
+            Path to other bbi files, the corresponding coverage on the interval
+            will be used as a secondary input for the model (or targets)
             default=None
-        bbi_input_length:
+        sec_input_length:
             {int, 'maxlen'}, Length of the secondary sequences to be used as
-            input. If maxlen the length will be the same as the DNA seq.
+            model input. If maxlen the length will be the same as the DNA seq.
+            default='maxlen'
+        sec_nb_annotation:
+            The number of different annotation in secondary input files.
+            (see ContinuousDataset for details).
             default=None
-        bbi_dummy:
-            boolean, whether or not to add a final dummy axis to the second
-            input.
+        sec_sampling_mode:
+            How the secondary inputs are sampled from the coverage on the cor-
+            -responding input interval.
+            default=None
+        sec_normalization_mode:
+            How the secondary inputs are normalized.
+        use_sec_as:
+            {'inputs', 'targets'}
+            default='inputs'
         rc:
             boolean, if true the batch is reversed complemented.
             default=False
@@ -822,9 +740,12 @@ class StringSeqIntervalDl(Dataset):
                  annotation_files,
                  fasta_file,
                  use_strand=False,
-                 bbi_input=None,
-                 bbi_input_length=None,
-                 bbi_dummy=False,
+                 sec_inputs=None,
+                 sec_input_length='maxlen',
+                 sec_nb_annotation=None,
+                 sec_sampling_mode=None,
+                 sec_normalization_mode=None,
+                 use_sec_as='inputs',
                  force_upper=False,
                  rc=False,
                  *args,
@@ -835,11 +756,17 @@ class StringSeqIntervalDl(Dataset):
         self.force_upper = force_upper
         self.fasta_extractors = None
         self.pad_seq = False
-        self.bbi_input = bbi_input
-        self.bbi_input_length = bbi_input_length
-        self.bbi_dummy = bbi_dummy
+        self.sec_inputs = sec_inputs
+        self.sec_input_length = sec_input_length
+        self.sec_nb_annotation = sec_nb_annotation
+        self.sec_sampling_mode = sec_sampling_mode
+        self.sec_normalization_mode = sec_normalization_mode
+        self.use_sec_as = use_sec_as
         self.rc = rc
-
+        
+        assert self.use_sec_as in ['targets', 'inputs'],\
+        'use_sec_as is either "targets" or "input"'
+        
         if not isinstance(self.annotation_files, list):
             self.annotation_files = [self.annotation_files]
 
@@ -855,11 +782,18 @@ class StringSeqIntervalDl(Dataset):
             self.dataset = ContinuousDataset(annotation_files = self.annotation_files,
                                              *args,
                                              **kwargs)
-        if self.bbi_input_length is None:
+        if self.sec_input_length == 'maxlen':
             try:
-                self.bbi_input_length = self.dataset.length
+                self.sec_input_length = self.dataset.length
             except AttributeError:
-                self.bbi_input_length = self.dataset.window
+                self.sec_input_length = self.dataset.window
+        
+        if self.sec_inputs:
+            self.extractor = bbi_extractor(self.sec_inputs,
+                                           self.sec_input_length,
+                                           self.sec_nb_annotation,
+                                           self.sec_sampling_mode,
+                                           self.sec_normalization_mode)
 
     def __len__(self):
         return len(self.dataset)
@@ -909,45 +843,37 @@ class StringSeqIntervalDl(Dataset):
                              anchor="center",
                              value="N") for seq in seqs]
 
-        if self.bbi_input:
-            seqs_bbi = [utils.bbi_extractor(resize_interval(interval,
-                                                            self.bbi_input_length,
-                                                            anchor='center'),
-                                      self.bbi_input,
-                                      self.bbi_dummy) for interval in intervals]
-
-            seqs_bbi = np.array(seqs_bbi)
+        if self.sec_inputs:
+            sec_seqs = [self.extractor.extract(interval) for interval in intervals]
+            sec_seqs = np.array(sec_seqs)
+            
             if self.use_strand:
-                seqs_bbi[negative_strand] = seqs_bbi[negative_strand, ::-1]            
+                sec_seqs[negative_strand] = sec_seqs[negative_strand, ::-1]            
 
             if self.rc:
-                seqs, seq_bbi, labels = utils.reverse_complement(seqs,
+                seqs, sec_seqs, labels = utils.reverse_complement(seqs,
                                                                  labels,
-                                                                 seqs_bbi)
-
-            return {
-                "inputs": [np.array(seqs), seqs_bbi],
-                "targets": labels,
-                "metadata": {
-                    "ranges": [GenomicRanges(interval.chrom,
-                                             interval.start,
-                                             interval.stop,
-                                             str(idx_)) for interval, idx_ in zip(intervals, idx)] 
-                }
-            }
+                                                                 sec_seqs)
+            if self.use_sec_as == 'inputs':
+                inputs = [np.array(seqs), sec_seqs]
+            else:
+                inputs = np.array(seqs)
+                labels = [labels, sec_seqs]
         else:
             if self.rc:
                 seqs, labels = utils.reverse_complement(seqs, labels)
-            return {
-                "inputs": np.array(seqs),
-                "targets": labels,
-                "metadata": {
-                    "ranges": [GenomicRanges(interval.chrom,
-                                             interval.start,
-                                             interval.stop,
-                                             str(idx_)) for interval, idx_ in zip(intervals, idx)] 
-                }
+            inputs = np.array(seqs)
+
+        return {
+            "inputs": inputs,
+            "targets": labels,
+            "metadata": {
+                "ranges": [GenomicRanges(interval.chrom,
+                                         interval.start,
+                                         interval.stop,
+                                         str(idx_)) for interval, idx_ in zip(intervals, idx)] 
             }
+        }
 
     @classmethod
     def get_output_schema(cls):
@@ -1024,13 +950,13 @@ class SeqIntervalDl(Dataset):
     def __getitem__(self, idx):
         ret = self.seq_dl[idx]
         
-        if self.seq_dl.bbi_input:
+        if self.seq_dl.sec_inputs and self.seq_dl.use_sec_as == 'inputs':
             length = len(ret['inputs'][0])
             ret['inputs'] = [np.array([self.input_transform(str(ret["inputs"][0][i]))\
                              for i in range(length)]), ret['inputs'][1]]
         else:   
             length = len(ret['inputs'])
-            ret['inputs'] = np.array([self.input_transform(str(ret["inputs"][0][i]))\
+            ret['inputs'] = np.array([self.input_transform(str(ret["inputs"][i]))\
                             for i in range(length)])
         return ret
 

@@ -7,9 +7,8 @@ Created on Tue Jun 18 14:21:30 2019
 """
 
 import numpy as np
-from kipoiseq.utils import DNA
 
-from sequence import SeqIntervalDl
+from sequence import SeqIntervalDl, StringSeqIntervalDl
 
 class Generator(object):
     """
@@ -17,77 +16,34 @@ class Generator(object):
         doc: >
             Generator for keras model able to yield inputs and targets in batch
             by reading into a fasta file and a annotation file. Inputs are one-
-            hot-encoded.
+            hot-encoded or string.
      args:
-        annotation_file:
-            doc: bed3+<columns> file path containing intervals + (optionally)
-            labels,
-            hdf5 file with a continuous annotation along the genome, one
-            dataset is one chromosome
-            gff3 file with the annotations. (to be done)
-        fasta_file:
-            doc: Reference genome FASTA file path.
-        batch_size: the size of the batch.
-        num_chr_fasta:
-            doc: True, the the dataloader will make sure that the chromosomes
-            don't start with chr.
-        label_dtype:
-            doc: 'None, datatype of the task labels taken from the annotation_file.
-            Example: str, int, float, np.float32'
-        auto_resize_len:
-            doc: None, required sequence length.
-        # use_strand:
-        #     doc: reverse-complement fasta sequence if bed file defines
-        #     negative strand
-        alphabet_axis:
-            doc: axis along which the alphabet runs (e.g. A,C,G,T for DNA)
-        dummy_axis:
-            doc: defines in which dimension a dummy axis should be added. None
-            if no dummy axis is required.
-        alphabet:
-            doc: >
-                alphabet to use for the one-hot encoding. This defines the
-                order of the one-hot encoding. Can either be a list or a
-                string: 'ACGT' or ['A, 'C', 'G', 'T']. Default: 'ATGC'
-        dtype:
-            doc: 'defines the numpy dtype of the returned array.
-            Example: int, np.int32, np.float32, float'
-        ignore_targets:
-            doc: if True, don't return any target variables
-        args: arguments specific to the different dataloader that can be used.
-        kwargs: dictionnary with specific arguments to the dataloader.
+         batch_size:
+             number of example per batch pass to the model.
+         one-hot-encoding:
+             whether or not the inputs is one-hot-encoded (False: string)
+             default: True
+         args:
+             arguments specific to the different dataloader that can be used.
+         kwargs:
+             dictionnary with specific arguments to the dataloader.
     """
     
-    def __init__(self, annotation_file,
-                       fasta_file,
-                       batch_size=512,
-                       num_chr_fasta=False,
-                       label_dtype=None,
-                       auto_resize_len=None,
-                       # max_seq_len=None,
-                       # use_strand=False,
-                       alphabet_axis=1,
-                       dummy_axis=None,
-                       alphabet=DNA,
-                       ignore_targets=False,
-                       dtype=None,
+    def __init__(self, batch_size,
+                       one_hot_encoding=True,
                        *args,
                        **kwargs):
-        self.dataset = SeqIntervalDl(annotation_file, fasta_file,
-                                     num_chr_fasta=num_chr_fasta,
-                                     label_dtype=label_dtype,
-                                     auto_resize_len=auto_resize_len,
-                                     # use_strand=use_strand,
-                                     ignore_targets=ignore_targets,
-                                     alphabet_axis=alphabet_axis,
-                                     dummy_axis=dummy_axis,
-                                     alphabet=alphabet,
-                                     dtype=dtype,
-                                     *args,
-                                     **kwargs)
+        self.one_hot_encoding = one_hot_encoding
+        
+        if self.one_hot_encoding:
+            self.dataset = SeqIntervalDl(*args,
+                                         **kwargs)
+        else:
+            self.dataset = StringSeqIntervalDl(*args,
+                                               **kwargs)
         self.batch_size = batch_size
-    #@profile
-    def create(self):
+
+    def __call__(self):
         """Returns a generator to train a keras model (yielding inputs and
         outputs)."""
         def generator_function(dataset, batch_size):
@@ -97,13 +53,141 @@ class Generator(object):
             while True:
             # reshuffled the train set after an epoch
                 np.random.shuffle(indexes)
-            
-                for num in range(number_of_batches) :
+                
+                for num in range(number_of_batches):
                     batch_indexes = indexes[num*batch_size : (num + 1) * batch_size]
-                    data = dataset[batch_indexes]
+                    data = dataset[list(batch_indexes)]
                     yield data['inputs'], data['targets']
             
         return generator_function(self.dataset, self.batch_size)
     
     def __len__(self):
         return len(self.dataset) // self.batch_size
+    
+
+class MultiGenerator(object):
+    """
+    info:
+        doc: >
+            Class able to yield inputs and targets from several different
+            interval readers. Usefull to train on several species or to train
+            on both direct and reverse side.
+     args:
+         batch_size:
+             number of example per batch pass to the model.
+         dataset_list:
+             list of SeqIntervalDl or StringSeqIntervalDl example, the output
+             shape need to be the same for all instance.
+        inst_per_dataset:
+            list of integer, number of example to be taken from every dataset.
+            default='all'
+    """
+    
+    def __init__(self, batch_size,
+                       dataset_list,
+                       inst_per_dataset='all'):
+        self.dataset_list = dataset_list
+        self.batch_size = batch_size
+        self.inst_per_dataset = inst_per_dataset
+        
+    def __call__(self):
+        """Returns a generator to train a keras model (yielding inputs and
+        outputs)."""
+        indexes = self._get_indexes()
+        def generator_function(list_of_dataset, batch_size):
+            number_of_batches = len(indexes) // batch_size
+            
+            while True:
+            # reshuffled the train set after an epoch
+                np.random.shuffle(indexes)
+            
+                for num in range(number_of_batches):
+                    batch_indexes = indexes[num*batch_size : (num + 1) * batch_size]
+                    inputs = None
+                    targets = None
+
+                    for dataset_index, dataset in enumerate(list_of_dataset): 
+                        sub_batch_indexes = batch_indexes[batch_indexes[:, 0] == dataset_index]
+                        data = list_of_dataset[dataset_index][sub_batch_indexes[:, 1].tolist()]
+                        inputs = self._append_data(inputs, data['inputs'])
+                        targets = self._append_data(targets, data['targets'])
+                    yield inputs, targets
+            
+        return generator_function(self.dataset_list, self.batch_size)
+        
+    def _append_data(self, ldata, rdata):
+        if isinstance(ldata, list):
+            if len(rdata[0]) != 0:
+                ldata[0] = np.append(ldata[0], rdata[0], axis=0)
+                ldata[1] = np.append(ldata[1], rdata[1], axis=0)
+        
+        elif isinstance(ldata, np.ndarray):
+            if len(rdata) != 0:
+                ldata = np.append(ldata, rdata, axis=0)
+        else:
+            if isinstance(rdata, list):
+                if len(rdata[0]) != 0:
+                    ldata = rdata
+            elif isinstance(rdata, np.ndarray):
+                if len(rdata) != 0:
+                    ldata = rdata
+        return ldata
+    
+    def _get_indexes(self):
+        if not self.inst_per_dataset == 'all':
+            assert len(self.dataset_list) == len(self.inst_per_dataset),\
+            """To pass the number of examples to be taken from every dataset,
+            the list of dataset and list of number must be of the same length
+            """
+
+        indexes = np.zeros((1, 2))
+        if self.inst_per_dataset == 'all':
+            self.inst_per_dataset = [len(dataset) for dataset in self.dataset_list]
+        
+        for dataset_index, dataset in enumerate(self.dataset_list):
+            length = len(dataset)
+            nb_inst = self.inst_per_dataset[dataset_index]
+            indexes_ = np.append(np.repeat([[dataset_index]], nb_inst,
+                                           axis=0),
+                                 np.random.choice(np.arange(length),
+                                                  nb_inst,
+                                                  replace=False).reshape(nb_inst,
+                                                                         1),
+                                 axis=1)
+            
+            indexes = np.append(indexes, indexes_, axis=0)
+        indexes = indexes[1:].astype(int)
+        return indexes
+        
+    
+    def __len__(self):
+        return len(self._get_indexes()) // self.batch_size
+	    
+	   
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
