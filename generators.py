@@ -7,8 +7,10 @@ Created on Tue Jun 18 14:21:30 2019
 """
 
 import numpy as np
+import inspect
 
 from sequence import SeqIntervalDl, StringSeqIntervalDl
+from utils import ArgumentsDict
 
 class Generator(object):
     """
@@ -34,6 +36,7 @@ class Generator(object):
                        *args,
                        **kwargs):
         self.one_hot_encoding = one_hot_encoding
+        self.frame = inspect.currentframe()
         
         if self.one_hot_encoding:
             self.dataset = SeqIntervalDl(*args,
@@ -64,6 +67,9 @@ class Generator(object):
     def __len__(self):
         return len(self.dataset) // self.batch_size
     
+    @property
+    def command_dict(self):
+        return ArgumentsDict(self, called_args='dataset')
 
 class MultiGenerator(object):
     """
@@ -82,14 +88,14 @@ class MultiGenerator(object):
             list of integer, number of example to be taken from every dataset.
             default='all'
     """
-    
     def __init__(self, batch_size,
                        dataset_list,
                        inst_per_dataset='all'):
         self.dataset_list = dataset_list
         self.batch_size = batch_size
         self.inst_per_dataset = inst_per_dataset
-        
+        self.frame = inspect.currentframe()
+
     def __call__(self):
         """Returns a generator to train a keras model (yielding inputs and
         outputs)."""
@@ -114,7 +120,7 @@ class MultiGenerator(object):
                     yield inputs, targets
             
         return generator_function(self.dataset_list, self.batch_size)
-        
+
     def _append_data(self, ldata, rdata):
         if isinstance(ldata, list):
             if len(rdata[0]) != 0:
@@ -132,7 +138,7 @@ class MultiGenerator(object):
                 if len(rdata) != 0:
                     ldata = rdata
         return ldata
-    
+
     def _get_indexes(self):
         if not self.inst_per_dataset == 'all':
             assert len(self.dataset_list) == len(self.inst_per_dataset),\
@@ -158,36 +164,10 @@ class MultiGenerator(object):
             indexes = np.append(indexes, indexes_, axis=0)
         indexes = indexes[1:].astype(int)
         return indexes
-        
-    
+
     def __len__(self):
         return len(self._get_indexes()) // self.batch_size
-	    
-	   
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+    
+    @property
+    def command_dict(self):
+        return ArgumentsDict(self, kwargs=False)

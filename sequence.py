@@ -8,17 +8,16 @@ Created on Mon Jun 17 10:17:41 2019
 
 import pandas as pd
 import numpy as np
-from copy import deepcopy
 import intervals as I 
 import pybedtools
 import random
 import warnings
 import pyBigWig
+import inspect
 
 
 from kipoi.metadata import GenomicRanges
 from kipoi.data import Dataset
-from kipoi_utils.utils import default_kwargs
 from kipoiseq.extractors import FastaStringExtractor
 from kipoiseq.transforms import ReorderedOneHot
 from kipoiseq.transforms.functional import fixed_len
@@ -31,10 +30,12 @@ from extractors import bbi_extractor
 
 class SparseDataset(object):
     """
-    Reads the positions corresponding to some annotations in a file dedicated
-    to store sparse annotation (gff, gtf, bed) and return a pybedtool interval
-    corresponding to every annitation as long as a label for every interval.
-    
+    info:
+        docs: >
+            Reads the positions corresponding to some annotations in a file
+            dedicated to store sparse annotation (gff, gtf, bed) and return a
+            pybedtool interval corresponding to every annitation as long as a
+            label for every interval.
     args:
         annotation_files:
             list of file with annotations (one file per cellular type for
@@ -110,16 +111,17 @@ class SparseDataset(object):
         self.ignore_targets = ignore_targets
         self.negative_ratio = negative_ratio
         self.negative_type = negative_type
-        
+        self.frame = inspect.currentframe()
+
         assert not (self.seq_len == 'real' and self.data_augmentation), \
         '''Returning the real position of the annotation is not compatible with
         data_augmentation'''
-        
+
         if not isinstance(self.annotation_files, list):
             self.annotation_files = [self.annotation_files]
-        
+
         df_ann_list = list()
-        
+
         for annotation_file in self.annotation_files:
             if annotation_file.endswith('.bed'):
                 df_ann_list.append(utils.bed_to_df(annotation_file,
@@ -151,21 +153,21 @@ class SparseDataset(object):
             self.ann_df = self.ann_df[self.ann_df.chrom.isin(incl_chromosomes)]
         if excl_chromosomes is not None:
             self.ann_df = self.ann_df[~self.ann_df.chrom.isin(excl_chromosomes)]
-        
+
         self.df = self._get_dataframe()
 
         if not self.ignore_targets:
             self.labels = self._get_labels()
-        
+
         if self.negative_type == 'random':
             assert isinstance(self.negative_ratio, int), \
             'To use random negative sequence negative_ratio must be an integer'
             self._random_negative_class()
-        
+
         elif self.negative_type == 'real':
             neg_df, neg_label = self._negative_class()
             self.df = self.df.append(neg_df)
-            
+
             if not self.ignore_targets:
                 self.labels = np.append(self.labels, neg_label, axis=0)
 
@@ -223,7 +225,7 @@ class SparseDataset(object):
             data['type'] = i + 1
             multi_df = multi_df.append(data)
         return multi_df
-    
+
     def _binarize_label(self):
         self.ann_df = self.ann_df[self.ann_df.label.isin(self.annotation_list)]
         labels = self.ann_df.label.values
@@ -231,11 +233,10 @@ class SparseDataset(object):
         for i, label in enumerate(self.annotation_list):
             labels[labels == label] = i + 1
         self.ann_df.label = labels
-    
+
     def _restrict(self):
         assert 'strand' in self.ann_df.columns,\
         'The data need to specify the strand to use restrict'
-        
         df = self.ann_df
         if self.predict == 'start':
             for i in range(len(df)):
@@ -256,10 +257,10 @@ class SparseDataset(object):
                     df.stop.iloc[i] = row.stop
 
         self.ann_df = df
-    
+
     def _find_maxlen(self):
         return np.max(self.ann_df.stop.values - self.ann_df.start.values)
-    
+
     def _calculate_interval(self,
                             df,
                             return_all=False,
@@ -272,7 +273,7 @@ class SparseDataset(object):
     
         start = df.start.values
         stop = df.stop.values
-    
+
         if self.data_augmentation and return_all:
             starts = np.concatenate([np.arange(stop[i] - self.length,
                                                start[i] + 1)\
@@ -282,7 +283,7 @@ class SparseDataset(object):
                                               start[i] + 1 + self.length)\
                                     for i in range(len(start))],
                                     axis=0)
-    
+
             if return_strand:
                 strand = df.strand.values
                 strands = np.concatenate([np.repeat(strand[i],
@@ -291,7 +292,7 @@ class SparseDataset(object):
                 return starts, stops, strands
             else:
                 return starts, stops
-    
+
         elif self.data_augmentation and not return_all:
             return stop - self.length, start + self.length
     
@@ -377,12 +378,14 @@ class SparseDataset(object):
         
         elif isinstance(self.negative_ratio, int):
             if self.data_augmentation:
-                indexes = np.random.randint(0, len(neg_df),
-                                            sum(number_of_pos) * self.negative_ratio)
+                indexes = np.random.choice(np.arange(len(neg_df)),
+                                 sum(number_of_pos) * self.negative_ratio,
+                                 replace=False)
             else:
-                indexes = np.random.randint(0, len(neg_df),
-                                            len(self.ann_df) * self.negative_ratio)
-    
+                indexes = np.random.choice(np.arange(len(neg_df)),
+                                 len(self.ann_df) * self.negative_ratio,
+                                 replace=False)
+
             if self.seq2seq:
                 labels = np.zeros((len(indexes),
                                    self.length,
@@ -498,18 +501,26 @@ class SparseDataset(object):
 
         return labels[1:]
 
+    @property
+    def command_dict(self):
+        return utils.ArgumentsDict(self, kwargs=False)
+
 
 class ContinuousDataset(object):
     """
-    Reads files adaptated for continuous annotation (wig, BigWig, bedGraph),
-    and returns intervals and the corresponding annotation as a label.
-    
-    An interval can be labeled with two manners. First, the label is the expe-
-    rimental values on a window at the center of the interval (window of any
-    length within the interval). Secondly, it can be labeled by the experimental
-    values covering all the interval and downsampled to reach a smaller length.
-    Downsampling can be achived by taking one value from several ones or by
-    averaging the values within small window.
+    info:
+        docs: >
+            Reads files adaptated for continuous annotation (wig, BigWig,
+            bedGraph), and returns intervals and the corresponding annotation
+            as a label.
+            
+            An interval can be labeled with two manners. First, the label is
+            the experimental values on a window at the center of the interval
+            (window of any length within the interval). Secondly, it can be
+            labeled by the experimental values covering all the interval and
+            downsampled to reach a smaller length. Downsampling can be achived
+            by taking one value from several ones or by averaging the values
+            within small window.
     
     args:
         annotation_files:
@@ -576,6 +587,7 @@ class ContinuousDataset(object):
         self.excl_chromosomes = excl_chromosomes
         self.ignore_targets = ignore_targets
         self.df = pd.DataFrame()
+        self.frame = inspect.currentframe()
 
         # converting to list type to consistancy with the case of multi-outputs
         if not isinstance(self.annotation_files, list):
@@ -674,15 +686,20 @@ class ContinuousDataset(object):
 
     def __len__(self):
         return self.df.last_index.values[-1]
+    
+    @property
+    def command_dict(self):
+        return utils.ArgumentsDict(self, kwargs=False)
 
 class StringSeqIntervalDl(Dataset):
     """
-    Dataloader for a combination of fasta and a file with annotations.
-    The dataloader extracts regions from the fasta file corresponding to
-    the `annotation_file`. Returned sequences are of the type np.array([str]),
-    possibly the corresponding occupancy taken from a bbi file can be passed as
-    secondary input or targets.
-    
+    info:
+        docs: >
+            Dataloader for a combination of fasta and a file with annotations.
+            The dataloader extracts regions from the fasta file corresponding
+            to the `annotation_file`. Returned sequences are of the type
+            np.array([str]), possibly the corresponding occupancy taken from a
+            bbi file can be passed as secondary input or targets.
     args:
         annotation_files:
             list of file with annotations (wig, bigWig or bedGraph / bed, gff)
@@ -763,6 +780,7 @@ class StringSeqIntervalDl(Dataset):
         self.sec_normalization_mode = sec_normalization_mode
         self.use_sec_as = use_sec_as
         self.rc = rc
+        self.frame = inspect.currentframe()
         
         assert self.use_sec_as in ['targets', 'inputs'],\
         'use_sec_as is either "targets" or "input"'
@@ -875,15 +893,10 @@ class StringSeqIntervalDl(Dataset):
             }
         }
 
-    @classmethod
-    def get_output_schema(cls):
-        output_schema = deepcopy(cls.output_schema)
-        kwargs = default_kwargs(cls)
-        ignore_targets = kwargs['ignore_targets']
-        if ignore_targets:
-            output_schema.targets = None
-            return output_schema
-        
+    @property
+    def command_dict(self):
+        return utils.ArgumentsDict(self, called_args='dataset')
+    
 
 class SeqIntervalDl(Dataset):
     """
@@ -927,7 +940,6 @@ class SeqIntervalDl(Dataset):
                 type: GenomicRanges
                 doc: Ranges describing inputs.seq
     """
-    #@profile
     def __init__(self,
                  alphabet_axis=1,
                  dummy_axis=None,
@@ -935,6 +947,7 @@ class SeqIntervalDl(Dataset):
                  dtype=None,
                  *args,
                  **kwargs):
+        self.frame = inspect.currentframe()
         # core dataset, not using the one-hot encoding params
         self.seq_dl = StringSeqIntervalDl(*args,
                                           **kwargs)
@@ -946,7 +959,7 @@ class SeqIntervalDl(Dataset):
 
     def __len__(self):
         return len(self.seq_dl)
-    #@profile
+
     def __getitem__(self, idx):
         ret = self.seq_dl[idx]
         
@@ -960,25 +973,7 @@ class SeqIntervalDl(Dataset):
                             for i in range(length)])
         return ret
 
-    @classmethod
-    def get_output_schema(cls):
-        """Get the output schema. Overrides the default `cls.output_schema`
-        """
-        output_schema = deepcopy(cls.output_schema)
-
-        # get the default kwargs
-        kwargs = default_kwargs(cls)
-        # figure out the input shape
-        mock_input_transform = ReorderedOneHot(alphabet=kwargs['alphabet'],
-                                               dtype=kwargs['dtype'],
-                                               alphabet_axis=kwargs['alphabet_axis'],
-                                               dummy_axis=kwargs['dummy_axis'])
-        input_shape = mock_input_transform.get_output_shape(kwargs['auto_resize_len'])
-
-        # modify it
-        output_schema.inputs.shape = input_shape
-        # (optionally) get rid of the target shape
-        if kwargs['ignore_targets']:
-            output_schema.targets = None
-
-        return output_schema
+    @property
+    def command_dict(self):
+        return utils.ArgumentsDict(self, called_args='seq_dl')
+    

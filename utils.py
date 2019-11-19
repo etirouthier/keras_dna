@@ -10,6 +10,7 @@ import pybedtools
 import pandas as pd
 import pyBigWig
 import os
+import inspect
 
 def continuous_weights(x, threshold=10**4, include_zeros=False,
 						  correction='max_relative'):
@@ -128,7 +129,7 @@ def wig_to_df(wig, chrom_size):
     
     os.remove('tmp.bw')
     return df
-    
+
 def bigwig_to_df(bigfile):
     bw = pyBigWig.open(bigfile)
     df = pd.DataFrame()
@@ -189,3 +190,81 @@ def reverse_complement(seqs, labels, bbi_seqs=None):
         return seqs, bbi_seqs, labels
     else:
         return seqs, labels
+
+
+class ArgumentsDict(object):
+    """
+    Return dictionnary with the arguments passed to the several class necessary
+    to build a generator.
+    
+    args:
+        instance:
+            An instance of a class used in the process of building a generator.
+        called_args:
+            When the instance calls another class able to return an ArgumentsDict,
+            called_args is the corresponding argument.
+        kwargs:
+            If the instance accept kwargs to be passed.
+    returns:
+        An ArgumentsDict instance with the arguments passed to the class to
+        construct a generator.
+    """
+    def __init__(self,
+                 instance,
+                 called_args=None,
+                 kwargs=True):
+        assert hasattr(instance, 'frame'),\
+        """To access the arguments dict the class must give access to the
+        current frame in the __init__ function with the arguments 'frame' """
+        self.frame = instance.frame
+        self.instance = instance
+        
+        if called_args:
+            assert hasattr(self.instance, called_args),\
+            "The instance must own the arguments {}".format(called_args)
+            args_instance = getattr(self.instance, called_args)
+            assert hasattr(args_instance, 'command_dict'),\
+            """The class called with called_args must be able to return an
+            ArgumentsDict instance with 'command_dict'"""
+            
+        self.called_args = called_args
+        self.kwargs = kwargs
+    
+    def __call__(self):
+        """
+        Returns a dictionnary with the arguments passed to the instance
+        separated in two fields, the arguments corresponding to the class and
+        kwargs given to other object used by the instance.
+        """
+        args, _, _, values = inspect.getargvalues(self.frame)
+        dico = {i : values[i] for i in args[1:]}            
+        
+        if self.kwargs:
+            return {'args' : dico, 'kwargs' : values['kwargs']}
+        else:
+            return dico
+        
+    def as_input(self):
+        """
+        Returns a dictionnary with the arguments passed to construct the instan
+        ce. Can be used as input to reconstruct the same instance.
+        """
+        args, _, _, values = inspect.getargvalues(self.frame)
+        dico = {i : values[i] for i in args[1:]}            
+        
+        if self.kwargs:
+            dico.update(values['kwargs'])
+        return dico
+    
+    def get_details(self):
+        """
+        Detailed version of the dictionnary with all the class used in the proc
+        ess and their arguments.
+        """
+        if self.called_args:
+            args_instance = getattr(self.instance, self.called_args)
+            args_dico = args_instance.command_dict.get_details()
+            args_dico.update({str(type(self.instance))[8 : -2] : self.__call__()['args']})
+            return args_dico
+        else:
+            return {str(type(self.instance))[8 : -2] : self.as_input()}

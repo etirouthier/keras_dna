@@ -15,7 +15,7 @@ from kipoiseq.transforms.functional import resize_interval
 
 
 from MyModuleLibrary.array_modifier import rolling_window
-from normalization import Normalizer
+from normalization import Normalizer, BiNormalizer
 
 
 class bbi_extractor(object):
@@ -40,13 +40,17 @@ class bbi_extractor(object):
             at the coverage.
         normalization_mode:
             argument from the Normalizer class
+        *args, **kwargs:
+            other arguments from Normalizer class
     """
     def __init__(self,
                  bbi_files,
                  window,
                  nb_annotation_type=None,
                  sampling_mode=None,
-                 normalization_mode=None):
+                 normalization_mode=None,
+                 *args,
+                 **kwargs):
         if not isinstance(bbi_files, list):
             self.bbi_files = [bbi_files]
         else:
@@ -58,11 +62,20 @@ class bbi_extractor(object):
         self.normalization_mode = normalization_mode
 
         #TODO create a bam, bedGraph, wig to bigWig converter
-
         self.norm_dico = dict()
-        for bbi_file in self.bbi_files:
-            self.norm_dico[bbi_file] = Normalizer(normalization_mode, bbi_file)
-        
+        if isinstance(self.normalization_mode, list):
+            for bbi_file in self.bbi_files:
+                self.norm_dico[bbi_file] = BiNormalizer(normalization_mode,
+                                                        bbi_file,
+                                                        *args,
+                                                        **kwargs)
+        else:
+            for bbi_file in self.bbi_files:
+                self.norm_dico[bbi_file] = Normalizer(normalization_mode,
+                                                      bbi_file,
+                                                      *args,
+                                                      **kwargs)
+
         if self.nb_annotation_type:
             assert len(self.bbi_files) % self.nb_annotation_type == 0,\
             """Every annotation must be described by the same number of file"""
@@ -90,9 +103,9 @@ class bbi_extractor(object):
         seq = list()
         for bbi_file in self.bbi_files:
             bw = pyBigWig.open(bbi_file)
-            seq.append(self.norm_dico[bbi_file].normalize(np.array(bw.values(interval.chrom,
-                                                                             interval.start,
-                                                                             interval.stop))))
+            seq.append(self.norm_dico[bbi_file](np.array(bw.values(interval.chrom,
+                                                                   interval.start,
+                                                                   interval.stop))))
         seq =  np.array(seq).T
 
         if self.sampling_mode:
