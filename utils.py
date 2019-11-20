@@ -259,7 +259,7 @@ class ArgumentsDict(object):
     def get_details(self):
         """
         Detailed version of the dictionnary with all the class used in the proc
-        ess and their arguments.
+        -ess and their arguments.
         """
         if self.called_args:
             args_instance = getattr(self.instance, self.called_args)
@@ -267,4 +267,7 @@ class ArgumentsDict(object):
             args_dico.update({str(type(self.instance))[8 : -2] : self.__call__()['args']})
             return args_dico
         else:
-            return {str(type(self.instance))[8 : -2] : self.as_input()}
+            args_dico = self.as_input()
+            if hasattr(self.instance, 'length'):
+                args_dico.update({'length' : self.instance.length})
+            return {str(type(self.instance))[8 : -2] : args_dico}

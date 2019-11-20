@@ -37,7 +37,7 @@ class Normalizer(object):
         self.chrom_size = dict()
 
         for name, size in self.bw.chroms().items():
-            if re.search('^(chr)?\d+$', name):
+            if re.search('^(chr)?(\d+)?([XVI]+)?$', name):
                 self.chrom_size[name] = size
 
         assert self.bw.isBigWig() or self.bw.isBigBed(),\

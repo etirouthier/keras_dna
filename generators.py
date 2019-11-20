@@ -8,6 +8,7 @@ Created on Tue Jun 18 14:21:30 2019
 
 import numpy as np
 import inspect
+from copy import deepcopy
 
 from sequence import SeqIntervalDl, StringSeqIntervalDl
 from utils import ArgumentsDict
@@ -71,6 +72,7 @@ class Generator(object):
     def command_dict(self):
         return ArgumentsDict(self, called_args='dataset')
 
+
 class MultiGenerator(object):
     """
     info:
@@ -85,7 +87,7 @@ class MultiGenerator(object):
              list of SeqIntervalDl or StringSeqIntervalDl example, the output
              shape need to be the same for all instance.
         inst_per_dataset:
-            list of integer, number of example to be taken from every dataset.
+            list of integer, number of example to be taken from each dataset.
             default='all'
     """
     def __init__(self, batch_size,
@@ -160,14 +162,144 @@ class MultiGenerator(object):
                                                   replace=False).reshape(nb_inst,
                                                                          1),
                                  axis=1)
-            
+        
             indexes = np.append(indexes, indexes_, axis=0)
         indexes = indexes[1:].astype(int)
         return indexes
 
     def __len__(self):
         return len(self._get_indexes()) // self.batch_size
-    
+
     @property
     def command_dict(self):
-        return ArgumentsDict(self, kwargs=False)
+        argsdict_list = [dataset.command_dict for dataset in self.dataset_list]
+        argsdict_list.append(ArgumentsDict(self, kwargs=False))
+        return argsdict_list
+
+
+class PredictionGenerator(object):
+    """
+    info:
+        doc: >
+    
+        Takes the command dict of a Generator instance (or a SeqIntervalDl or a
+        StringSeqIntervalDl instance) and returns a generator needed to predict
+        all along chromosomes.
+    
+    args:
+        batch_size:
+            integer
+        chrom_size:
+            A .sizes file with the size of chromosomes in two columns.
+        command_dict:
+            An ArgumentsDict instance that described how the model was trained.
+        incl_chromosomes:
+            list of chromosome to predict on.
+    """
+    def __init__(self,
+                 batch_size,
+                 command_dict,
+                 chrom_size,
+                 incl_chromosomes):
+        self.batch_size = batch_size
+        self.command_dict = command_dict
+        self.chrom_size = chrom_size
+
+        if isinstance(incl_chromosomes, list):
+            self.incl_chromosomes = incl_chromosomes
+        else:
+            self.incl_chromosomes = [incl_chromosomes]
+        self.detailed_dict = command_dict.get_details()
+
+        if 'sequence.SparseDataset' in self.detailed_dict:
+            dataset_dict = self.detailed_dict['sequence.SparseDataset']
+            self.window = dataset_dict['length']
+            self.tg_window = 1
+
+            if dataset_dict['seq2seq']:
+                self.tg_window = self.window
+
+        elif 'sequence.ContinuousDataset' in self.detailed_dict:
+            dataset_dict = self.detailed_dict['sequence.ContinuousDataset']
+            self.window = dataset_dict['window']
+
+            if dataset_dict['downsampling']:
+                self.tg_window = dataset_dict['window']
+                self.sampling_len = dataset_dict['window'] // dataset_dict['tg_window']
+            else:
+                self.tg_window = dataset_dict['tg_window']
+
+        string_dict = deepcopy(self.detailed_dict['sequence.StringSeqIntervalDl'])
+        string_dict['annotation_files'] = self.chrom_size
+        string_dict['use_strand'] = False
+
+        continuous_dict = {'ignore_targets' : True,
+                           'overlapping' : False,
+                           'window' : self.window,
+                           'incl_chromosomes' : self.incl_chromosomes,
+                           'tg_window' : self.tg_window}
+
+        if 'sequence.SeqIntervalDl' in self.detailed_dict:
+            self.input_dict = deepcopy(self.detailed_dict['sequence.SeqIntervalDl'])
+            self.input_dict.update(string_dict)
+            self.input_dict.update(continuous_dict)
+            self.dataset = SeqIntervalDl(**self.input_dict)
+        else:
+            self.input_dict = string_dict
+            self.input_dict.update(continuous_dict)
+            self.dataset = StringSeqIntervalDl(**self.input_dict)
+        
+    def __len__(self):
+        return len(self.dataset) // self.batch_size
+    
+    def __call__(self):
+        """Returns a generator to train a keras model (yielding inputs and
+        outputs)."""
+        def generator_function(dataset, batch_size):
+            indexes = np.arange(len(dataset))
+            number_of_batches = len(dataset) // batch_size
+            
+            while True:
+                for num in range(number_of_batches):
+                    batch_indexes = indexes[num*batch_size : (num + 1) * batch_size]
+                    data = dataset[list(batch_indexes)]
+                    yield data['inputs'], data['metadata']
+            
+        return generator_function(self.dataset, self.batch_size)
+
+    @property
+    def index_df(self):
+        """
+        Returns a DataFrame with the first and last index for every chromosome
+        and the position of the begining (included) of the prediction and the
+        end (excluded) of the prediction on the chromosome.
+        """
+        if 'sequence.SeqIntervalDl' in self.detailed_dict:
+            df = deepcopy(self.dataset.seq_dl.dataset.df)
+        else:
+            df = deepcopy(self.dataset.dataset.df)
+
+        if 'sequence.SparseDataset' in self.detailed_dict:
+            dataset_dict = self.detailed_dict['sequence.SparseDataset']
+
+            if dataset_dict['seq2seq']:
+                df['start'] = df.start.values - self.window // 2
+                df['stop'] = df.start.values + (df.last_index.values - df.first_index.values)\
+                            * self.window + self.window
+            else:
+                df['start'] = df.start.values
+                df['stop'] = df.start.values + (df.last_index.values - df.first_index.values)\
+                            + 1
+        elif 'sequence.ContinuousDataset' in self.detailed_dict:
+            dataset_dict = self.detailed_dict['sequence.ContinuousDataset']
+
+            if dataset_dict['downsampling']:
+                df['start'] = df.start.values - self.window // 2
+                df['stop'] = df.start.values + (df.last_index.values - df.first_index.values)\
+                            * self.window + self.window
+            else:
+                tg_window = dataset_dict['tg_window']
+                df['start'] = df.start.values - tg_window // 2
+                df['stop'] = df.start.values + (df.last_index.values - df.first_index.values)\
+                            * tg_window + tg_window
+        return df

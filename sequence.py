@@ -524,7 +524,9 @@ class ContinuousDataset(object):
     
     args:
         annotation_files:
-            list of file with annotations (wig, bigWig or bedGraph)
+            list of file with annotations (wig, bigWig or bedGraph).
+            If we just want the inputs then a file finishing by .sizes can be
+            passed (it must contains the size of chromosome).
          window:
             the length of the intervals.
         tg_window:
@@ -592,24 +594,41 @@ class ContinuousDataset(object):
         # converting to list type to consistancy with the case of multi-outputs
         if not isinstance(self.annotation_files, list):
             self.annotation_files = [self.annotation_files]
-            
-        # omit data outside chromosomes
-        bw = pyBigWig.open(self.annotation_files[0])
-        self.chrom_size = dict()
+        self.chrom_size = dict()    
         
-        if incl_chromosomes is not None:
-            for name, size in bw.chroms().items():
-                if name in incl_chromosomes:
-                    self.chrom_size[name] = size
-                    
-        elif excl_chromosomes is not None:
-            for name, size in bw.chroms().items():
-                if name not in excl_chromosomes:
-                    self.chrom_size[name] = size
-        else:
-            self.chrom_size = bw.chroms()
-        bw.close()
-        
+        if self.annotation_files[0].endswith(('.wig', '.bw', 'bedGraph')):
+            bw = pyBigWig.open(self.annotation_files[0])
+            # omit data outside chromosomes
+            if incl_chromosomes is not None:
+                for name, size in bw.chroms().items():
+                    if name in incl_chromosomes:
+                        self.chrom_size[name] = size
+                        
+            elif excl_chromosomes is not None:
+                for name, size in bw.chroms().items():
+                    if name not in excl_chromosomes:
+                        self.chrom_size[name] = size
+            else:
+                self.chrom_size = bw.chroms()
+            bw.close()
+
+        elif self.annotation_files[0].endswith('.sizes'):
+            chrom_size = pd.read_csv(self.annotation_files[0],
+                                     sep='\t',
+                                     names=['chrom', 'sizes'])
+
+            if incl_chromosomes is not None:
+                for name, size in zip(chrom_size.chrom.values,
+                                      chrom_size.sizes.values):
+                    if name in incl_chromosomes:
+                        self.chrom_size[name] = size
+    
+            elif excl_chromosomes is not None:
+                for name, size in zip(chrom_size.chrom.values,
+                                      chrom_size.sizes.values):
+                    if name not in excl_chromosomes:
+                        self.chrom_size[name] = size
+
         self.asteps=1
         if not self.downsampling:
             if not self.overlapping:
@@ -643,12 +662,14 @@ class ContinuousDataset(object):
         for name, size in self.chrom_size.items():
             chrom.append(name)
             start.append(self.hw)
-            stop.append(size - self.hw + 1 - (self.window % 2))
+            stop.append(size - self.hw - (self.window % 2))
             first_index.append(0)
             last_index.append((stop[-1] - start[-1]) // self.asteps)
         
         last_index = np.cumsum(last_index)
-        first_index[1:] = last_index[:-1]
+        for i in range(len(last_index)):
+            last_index[i] += i
+        first_index[1:] = last_index[:-1] + 1
 
         new_df = pd.DataFrame({'chrom' : chrom,
                                'start' : start,
@@ -656,7 +677,7 @@ class ContinuousDataset(object):
                                'first_index' : first_index,
                                'last_index' : last_index})
         return new_df
-    
+
     def _get_interval(self, idx):
         indicative_mat = (np.sign(self.df.first_index.values - idx)) *\
                          (np.sign(self.df.last_index.values - idx))
@@ -676,7 +697,7 @@ class ContinuousDataset(object):
             idx = [idx]
 
         intervals = [self._get_interval(index) for index in idx]
-        
+
         if self.ignore_targets:
             labels = {}
         else:
@@ -685,11 +706,12 @@ class ContinuousDataset(object):
         return intervals, labels
 
     def __len__(self):
-        return self.df.last_index.values[-1]
-    
+        return self.df.last_index.values[-1] + 1
+
     @property
     def command_dict(self):
         return utils.ArgumentsDict(self, kwargs=False)
+
 
 class StringSeqIntervalDl(Dataset):
     """
@@ -796,7 +818,7 @@ class StringSeqIntervalDl(Dataset):
            if self.dataset.seq_len == 'real':
                self.pad_seq = True
 
-        elif self.annotation_files[0].endswith(('.wig', '.bw', 'bedGraph')):
+        elif self.annotation_files[0].endswith(('.wig', '.bw', 'bedGraph', '.sizes')):
             self.dataset = ContinuousDataset(annotation_files = self.annotation_files,
                                              *args,
                                              **kwargs)
@@ -896,7 +918,7 @@ class StringSeqIntervalDl(Dataset):
     @property
     def command_dict(self):
         return utils.ArgumentsDict(self, called_args='dataset')
-    
+
 
 class SeqIntervalDl(Dataset):
     """
