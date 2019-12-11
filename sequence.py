@@ -803,10 +803,10 @@ class StringSeqIntervalDl(Dataset):
         self.use_sec_as = use_sec_as
         self.rc = rc
         self.frame = inspect.currentframe()
-        
+
         assert self.use_sec_as in ['targets', 'inputs'],\
         'use_sec_as is either "targets" or "input"'
-        
+
         if not isinstance(self.annotation_files, list):
             self.annotation_files = [self.annotation_files]
 
@@ -827,7 +827,7 @@ class StringSeqIntervalDl(Dataset):
                 self.sec_input_length = self.dataset.length
             except AttributeError:
                 self.sec_input_length = self.dataset.window
-        
+
         if self.sec_inputs:
             self.extractor = bbi_extractor(self.sec_inputs,
                                            self.sec_input_length,

@@ -162,7 +162,7 @@ class MultiGenerator(object):
                                                   replace=False).reshape(nb_inst,
                                                                          1),
                                  axis=1)
-        
+
             indexes = np.append(indexes, indexes_, axis=0)
         indexes = indexes[1:].astype(int)
         return indexes
@@ -181,10 +181,9 @@ class PredictionGenerator(object):
     """
     info:
         doc: >
-    
-        Takes the command dict of a Generator instance (or a SeqIntervalDl or a
-        StringSeqIntervalDl instance) and returns a generator needed to predict
-        all along chromosomes.
+            Takes the command dict of a Generator instance (or a SeqIntervalDl
+            or a StringSeqIntervalDl instance) and returns a generator needed
+            to predict all along chromosomes.
     
     args:
         batch_size:
@@ -195,12 +194,17 @@ class PredictionGenerator(object):
             An ArgumentsDict instance that described how the model was trained.
         incl_chromosomes:
             list of chromosome to predict on.
+        fasta_file:
+            A fasta_file to make prediction on (if None the same as in
+            command_dict)
+            default=None
     """
     def __init__(self,
                  batch_size,
                  command_dict,
                  chrom_size,
-                 incl_chromosomes):
+                 incl_chromosomes,
+                 fasta_file=None):
         self.batch_size = batch_size
         self.command_dict = command_dict
         self.chrom_size = chrom_size
@@ -232,6 +236,8 @@ class PredictionGenerator(object):
         string_dict = deepcopy(self.detailed_dict['sequence.StringSeqIntervalDl'])
         string_dict['annotation_files'] = self.chrom_size
         string_dict['use_strand'] = False
+        if fasta_file:
+            string_dict['fasta_file'] = fasta_file
 
         continuous_dict = {'ignore_targets' : True,
                            'overlapping' : False,
@@ -248,23 +254,23 @@ class PredictionGenerator(object):
             self.input_dict = string_dict
             self.input_dict.update(continuous_dict)
             self.dataset = StringSeqIntervalDl(**self.input_dict)
-        
+
     def __len__(self):
         return len(self.dataset) // self.batch_size
-    
+
     def __call__(self):
         """Returns a generator to train a keras model (yielding inputs and
         outputs)."""
         def generator_function(dataset, batch_size):
             indexes = np.arange(len(dataset))
             number_of_batches = len(dataset) // batch_size
-            
+
             while True:
                 for num in range(number_of_batches):
                     batch_indexes = indexes[num*batch_size : (num + 1) * batch_size]
                     data = dataset[list(batch_indexes)]
                     yield data['inputs'], data['metadata']
-            
+
         return generator_function(self.dataset, self.batch_size)
 
     @property
