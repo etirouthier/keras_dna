@@ -12,12 +12,16 @@ import pyBigWig
 
 
 from keras.utils.io_utils import H5Dict
-from keras.models import load_model
+from keras.models import load_model, clone_model
+from keras.models import Model
+from keras import Input
 
 
 from generators import Generator, MultiGenerator, PredictionGenerator
 from sequence import SeqIntervalDl, StringSeqIntervalDl
-
+from evaluation import Auc, Correlate
+from layers import Project1D
+    
 
 class ModelWrapper(object):
     """
@@ -106,6 +110,205 @@ class ModelWrapper(object):
         self._update_hdf5(h5dict, self.generator_train.command_dict, 'train')
         self._update_hdf5(h5dict, self.generator_val.command_dict, 'val')
 
+    def evaluate(self,
+                 incl_chromosomes,
+                 *args,
+                 **kwargs):
+        command_dict = deepcopy(self.generator_train.command_dict.as_input())
+        command_dict['incl_chromosomes'] = incl_chromosomes
+        generator_eval = Generator(**command_dict)
+
+        evaluations = self.model.evaluate_generator(generator=generator_eval(),
+                                                   steps=len(generator_eval),
+                                                   *args,
+                                                   **kwargs)
+        return {metric : evaluation for metric, evaluation in\
+                zip(self.model.metric_names, evaluations)}
+
+    def get_auc(self,
+                  incl_chromosomes,
+                  data_augmentation=True,
+                  fasta_file=None,
+                  annotation_file=None,
+                  curve='ROC',
+                  *args,
+                  **kwargs):
+        """
+        Returns the auroc score for a sparse model for every annotation on
+        every cellular type.
+        If data_augmentation the positive sequence are all the sequence that
+        contains a whole annotation instance, if not one positive sequence per
+        annotation instance.
+        """
+        if self.generator_train.__class__.__name__ == 'MultiGenerator':
+            assert fasta_file and annotation_file,\
+            """ To evaluate a MultiGenerator model, the fasta file and the
+            annotation file need to be passed as inputs."""
+            command_dict = self.generator_train.command_dict[0]
+
+            if 'sequence.SeqIntervalDl' in command_dict.get_details():
+                one_hot_encoding = True
+            else:
+                one_hot_encoding = False
+            
+            batch_size = self.generator_train.command_dict[-1].as_inputs()['batch_size']
+        else:
+            command_dict = self.generator_train.command_dict
+            one_hot_encoding = command_dict.as_input()['one_hot_encoding']
+            batch_size = command_dict.as_input()['batch_size']
+    
+        assert 'sequence.SparseDataset' in command_dict.get_details(),\
+        """Auroc score is only available for sparse dataset"""
+
+        dico = command_dict.get_details()['sequence.SparseDataset']
+
+        assert not dico['seq2seq'],\
+        """Auroc score is not available for seq2seq model"""
+
+        if isinstance(dico['annotation_files'], list):
+            nb_types = len(dico['annotation_files'])
+        else:
+            nb_types = 1
+
+        if annotation_file:
+            nb_types = 1
+
+        nb_annotation = len(dico['annotation_list'])
+        
+        eval_list = list()
+
+        for cell_idx in range(nb_types):
+            for idx, ann in enumerate(dico['annotation_list']):
+                eval_dict = deepcopy(command_dict.as_input())
+
+                if fasta_file:
+                    eval_dict['fasta_file'] = fasta_file
+
+                eval_dict['data_augmentation'] = data_augmentation
+                if annotation_file:
+                    eval_dict['annotation_files'] = annotation_file
+                else:
+                    annotation_file =\
+                    command_dict.as_input()['annotation_files']
+
+                    if not isinstance(annotation_file, list):
+                        annotation_file = [annotation_file]
+                    eval_dict['annotation_files'] = annotation_file[cell_idx]
+
+                eval_dict['incl_chromosomes'] = incl_chromosomes
+                eval_dict['annotation_list'] = [ann]
+                eval_dict['negative_ratio'] = 'all'
+                eval_dict['batch_size'] = batch_size
+                eval_dict['one_hot_encoding'] = one_hot_encoding
+                eval_dict['output_shape'] = (batch_size, 1)
+                metric = Auc(curve).metric
+
+                generator_eval = Generator(**eval_dict)
+                
+                input_shape = next(generator_eval())[0].shape
+                inputs = Input(input_shape)
+                x = self.model(inputs)
+                outputs = Project1D(cell_idx, idx,
+                                    nb_types, nb_annotation)(x)
+                model = Model([inputs, outputs])
+                
+                model.compile(optimizer=self.model.optimizer,
+                              loss=self.model.loss,
+                              metrics=[metric])
+
+                eval_list.append({'cell_idx' : cell_idx,
+                                  'annotation' : ann,
+                                  'AU' + curve :\
+                                  model.evaluate_generator(generator=generator_eval(),
+                                                           steps=len(generator_eval),
+                                                           *args,
+                                                           **kwargs)[1]})
+        return eval_list
+
+    def get_correlation(self,
+                  incl_chromosomes,
+                  fasta_file=None,
+                  annotation_file=None,
+                  *args,
+                  **kwargs):
+        """
+        Returns the correlation between the experimental and predicted coverage
+        for a continuous model for every annotation on every cellular type.
+        If fasta_file and annotation_file are parsed the evaluation is made
+        using those data.
+        """
+        if self.generator_train.__class__.__name__ == 'MultiGenerator':
+            assert fasta_file and annotation_file,\
+            """ To evaluate a MultiGenerator model, the fasta file and the
+            annotation file need to be passed as inputs."""
+            command_dict = self.generator_train.command_dict[0]
+
+            if 'sequence.SeqIntervalDl' in command_dict.get_details():
+                one_hot_encoding = True
+            else:
+                one_hot_encoding = False
+
+            batch_size = self.generator_train.command_dict[-1].as_inputs()['batch_size']
+            output_shape = self.generator_train.command_dict[-1].as_inputs()['output_shape']
+        else:
+            command_dict = self.generator_train.command_dict
+            one_hot_encoding = command_dict.as_input()['one_hot_encoding']
+            batch_size = command_dict.as_input()['batch_size']
+            output_shape = command_dict.as_input()['output_shape']
+
+        assert 'sequence.ContinuousDataset' in command_dict.get_details(),\
+        """Correlation score is only available for continuous dataset"""
+        
+        dico = command_dict.get_details()['sequence.ContinuousDataset']
+        if dico['nb_annotation_type']:
+            nb_annotation = dico['nb_annotation_type']
+        else:
+            nb_annotation = 1
+ 
+        if annotation_file:
+            nb_types = 1
+        else:
+            nb_types = len(dico['annotation_files']) // nb_annotation
+
+        eval_dict = deepcopy(command_dict.as_input())
+
+        if fasta_file:
+            eval_dict['fasta_file'] = fasta_file
+
+        if annotation_file:
+            eval_dict['annotation_files'] = annotation_file
+
+        eval_dict['incl_chromosomes'] = incl_chromosomes
+        eval_dict['batch_size'] = batch_size
+        eval_dict['one_hot_encoding'] = one_hot_encoding
+        eval_dict['output_shape'] = output_shape
+        eval_dict['overlapping'] = False
+
+        generator_eval = Generator(**eval_dict)
+        
+        metrics = list()
+        for cell_idx in range(nb_types):
+            for idx in range(nb_annotation):
+                metrics.append(Correlate(cell_idx,
+                                         idx,
+                                         nb_types,
+                                         nb_annotation).metric)
+                          
+        model = clone_model(self.model)
+        model.compile(optimizer=self.model.optimizer,
+                      loss=self.model.loss,
+                      metrics=metrics)
+
+        evaluations = model.evaluate_generator(generator=generator_eval(),
+                                              steps=len(generator_eval),
+                                              *args,
+                                              **kwargs)
+        import itertools
+        return {'correlate_{}_{}'.format(cell_idx, idx) : evaluation for\
+                (cell_idx, idx), evaluation in zip(itertools.product(*[range(nb_types),
+                                                                       range(nb_annotation)]),
+                                                   evaluations[1:])}
+                
     def predict(self,
                 incl_chromosomes,
                 chrom_size,
@@ -118,7 +321,7 @@ class ModelWrapper(object):
         Function designed to predict the output of the model all along the chromosome
         passed as arguments. Optionally another fasta file can be passed so that to
         predict on another species for example.
-        
+
         args:
             incl_chromosomes:
                 list of chromosomes to make the prediction on
@@ -143,10 +346,10 @@ class ModelWrapper(object):
             incl_chromosomes = [incl_chromosomes]
 
         self.pred_generator = PredictionGenerator(batch_size,
-                                                   command_dict,
-                                                   chrom_size,
-                                                   incl_chromosomes,
-                                                   fasta_file)
+                                                  command_dict,
+                                                  chrom_size,
+                                                  incl_chromosomes,
+                                                  fasta_file)
         prediction = self.model.predict_generator(generator=self.pred_generator(),
                                                   steps=len(self.pred_generator),
                                                   *args,
@@ -165,7 +368,7 @@ class ModelWrapper(object):
             command_dict = self.generator_train.command_dict[0].get_details()
         else:
             command_dict = self.generator_train.command_dict.get_details()
-            
+
         if 'sequence.SparseDataset' in command_dict:
             dico = command_dict['sequence.SparseDataset']
             
@@ -201,7 +404,7 @@ class ModelWrapper(object):
                         else:
                             array = prediction[:, :, cell_idx, idx]
 
-                        self._export_to_big_wig(path + '_cell_number{}_{}'\
+                        self._export_to_big_wig(path + '_cell_number{}_{}.bw'\
                                                 .format(str(cell_idx), ann),
                                                 array,
                                                 1)
@@ -223,14 +426,11 @@ class ModelWrapper(object):
                             try:
                                 array = prediction[:, 0, 0]
                             except IndexError:
-                                try:
-                                    array = prediction[:, 0]
-                                except IndexError:
-                                    array = prediction
+                                array = prediction
                         else:
                             array = prediction[:, cell_idx, idx]
 
-                        self._export_to_bigwig(path + '_cell_number{}_{}.bw    '\
+                        self._export_to_bigwig(path + '_cell_number{}_{}.bw'\
                                                 .format(str(cell_idx), ann),
                                                 array,
                                                 1)
@@ -253,13 +453,20 @@ class ModelWrapper(object):
                         try:
                             array = prediction[:, :, cell_idx, idx]
                         except IndexError:
-                            array = prediction[:, :, idx]
+                            try:
+                                array = prediction[:, :, idx]
+                            except IndexError:
+                                pass
 
                     elif nb_types != 1 and nb_annotation == 1:
                         try:
                             array = prediction[:, :, cell_idx, idx]
                         except IndexError:
-                            array = prediction[:, :, cell_idx]
+                            try:
+                                array = prediction[:, :, cell_idx]
+                            except IndexError:
+                                pass
+
                     elif nb_types == 1 and nb_annotation == 1:
                         try:
                             array = prediction[:, :, 0, 0]
@@ -284,19 +491,21 @@ class ModelWrapper(object):
             chrom_size = self.pred_generator.dataset.seq_dl.dataset.chrom_size
         except AttributeError:
             chrom_size = self.pred_generator.dataset.dataset.chrom_size
-    
+
         bw_header = [(str(chrom), size) for chrom, size in chrom_size.items()]
 
         bw_file = pyBigWig.open(path, 'w')
         bw_file.addHeader(bw_header)
 
         idxs = self.pred_generator.index_df
-        
         for chrom, _ in bw_header:
             row = idxs[idxs.chrom == chrom]
-            values = array[int(row.first_index) : int(row.last_index)]\
-                               .reshape(array.shape[0] * array.shape[1])
-            values = values.astype(float).tolist()
+            values = array[int(row.first_index) : int(row.last_index)]
+
+            if len(array.shape) == 2:
+                values = values.reshape(array.shape[0] * array.shape[1])
+
+            values = values.astype(float)
             bw_file.addEntries(row.chrom.values[0],
                                int(row.start),
                                values=values,
@@ -342,34 +551,3 @@ def load_generator(arguments):
         generator = Generator(**arguments['arguments'])
 
     return generator
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

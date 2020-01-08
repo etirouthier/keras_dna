@@ -85,7 +85,7 @@ def gff_to_df(gff_file, annotation_list):
     gff_file = pybedtools.BedTool(gff_file)
     
     chroms, starts, stops, labels = [], [], [], []
-    if not gff_file[0].strand == '.':
+    if not gff_file[1].strand == '.':
         strands = []
     else:
         strands=None

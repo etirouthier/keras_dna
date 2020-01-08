@@ -103,10 +103,12 @@ class bbi_extractor(object):
         seq = list()
         for bbi_file in self.bbi_files:
             bw = pyBigWig.open(bbi_file)
-            seq.append(self.norm_dico[bbi_file](np.array(bw.values(interval.chrom,
-                                                                   interval.start,
-                                                                   interval.stop))))
-        seq =  np.array(seq).T
+            array = bw.values(interval.chrom,
+                              interval.start,
+                              interval.stop, numpy=True)
+            array[np.isnan(array)] = 0
+            seq.append(self.norm_dico[bbi_file](array))
+        seq = np.array(seq).T
 
         if self.sampling_mode:
             assert abs(interval.stop - interval.start) % self.window == 0,\

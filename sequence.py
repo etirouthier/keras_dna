@@ -8,7 +8,6 @@ Created on Mon Jun 17 10:17:41 2019
 
 import pandas as pd
 import numpy as np
-import intervals as I 
 import pybedtools
 import random
 import warnings
@@ -132,27 +131,27 @@ class SparseDataset(object):
 
         self.ann_df = self._multi_cellular_type(df_ann_list)
         self._binarize_label()
-
+        
+        if self.num_chr and self.ann_df.iloc[0][0].startswith("chr"):
+            self.ann_df['chrom'] = self.ann_df['chrom'].str.replace("^chr", "")
+        if not self.num_chr and not self.ann_df.iloc[0][0].startswith("chr"):
+            self.ann_df['chrom'] = "chr" + self.ann_df['chrom']
+        
+        # omit data outside chromosomes
+        if incl_chromosomes is not None:
+            self.ann_df = self.ann_df[self.ann_df.chrom.isin(incl_chromosomes)]
+        if excl_chromosomes is not None:
+            self.ann_df = self.ann_df[~self.ann_df.chrom.isin(excl_chromosomes)]
+        
         if not self.predict == 'all':
             self._restrict()
-
+        
         if self.seq_len == 'MAXLEN' or self.seq_len == 'real':
             self.length = self._find_maxlen()
         elif isinstance(self.seq_len, int):
             self.length = self.seq_len
         else:
             raise NameError('seq_len should be "MAXLEN", "real" or an integer')
-
-        if self.num_chr and self.ann_df.iloc[0][0].startswith("chr"):
-            self.df[0] = self.ann_df[0].str.replace("^chr", "")
-        if not self.num_chr and not self.ann_df.iloc[0][0].startswith("chr"):
-            self.ann_df[0] = "chr" + self.ann_df[0]
-
-        # omit data outside chromosomes
-        if incl_chromosomes is not None:
-            self.ann_df = self.ann_df[self.ann_df.chrom.isin(incl_chromosomes)]
-        if excl_chromosomes is not None:
-            self.ann_df = self.ann_df[~self.ann_df.chrom.isin(excl_chromosomes)]
 
         self.df = self._get_dataframe()
 
@@ -238,26 +237,40 @@ class SparseDataset(object):
         assert 'strand' in self.ann_df.columns,\
         'The data need to specify the strand to use restrict'
         df = self.ann_df
+        df_plus = pd.DataFrame()
+        df_minus = pd.DataFrame()
         if self.predict == 'start':
-            for i in range(len(df)):
-                row = df.iloc[i]
-                if row.strand == '+':
-                    df.stop.iloc[i] = row.start + 1
-                else:
-                    df.start.iloc[i] = row.stop - 1
-                    df.stop.iloc[i] = row.stop
+            df_plus['chrom'] = df[df.strand == '+'].chrom.values
+            df_plus['start'] = df[df.strand == '+'].start.values
+            df_plus['stop'] = df[df.strand == '+'].start.values + 1
+            df_plus['label'] = df[df.strand == '+'].label.values
+            df_plus['strand'] = '+'
+            df_plus['type'] = df[df.strand == '+'].type.values
+            
+            df_minus['chrom'] = df[df.strand == '-'].chrom.values
+            df_minus['start'] = df[df.strand == '-'].stop.values - 1
+            df_minus['stop'] = df[df.strand == '-'].stop.values
+            df_minus['label'] = df[df.strand == '-'].label.values
+            df_minus['strand'] = '-'
+            df_minus['type'] = df[df.strand == '-'].type.values
 
         elif self.predict == 'stop':
-            for i in range(len(df)):
-                row = df.iloc[i]
-                if row.strand == '-':
-                    df.stop.iloc[i] = row.start + 1
-                else:
-                    df.start.iloc[i] = row.stop - 1
-                    df.stop.iloc[i] = row.stop
-
-        self.ann_df = df
-
+            df_plus['chrom'] = df[df.strand == '+'].chrom.values
+            df_plus['start'] = df[df.strand == '+'].stop.values - 1
+            df_plus['stop'] = df[df.strand == '+'].stop.values
+            df_plus['label'] = df[df.strand == '+'].label.values
+            df_plus['strand'] = '+'
+            df_plus['type'] = df[df.strand == '+'].type.values
+            
+            df_minus['chrom'] = df[df.strand == '-'].chrom.values
+            df_minus['start'] = df[df.strand == '-'].start.values
+            df_minus['stop'] = df[df.strand == '-'].start.values + 1
+            df_minus['label'] = df[df.strand == '-'].label.values
+            df_minus['strand'] = '-'
+            df_minus['type'] = df[df.strand == '-'].type.values
+            
+        self.ann_df = df_plus.append(df_minus)
+    
     def _find_maxlen(self):
         return np.max(self.ann_df.stop.values - self.ann_df.start.values)
 
@@ -336,7 +349,6 @@ class SparseDataset(object):
             neg_starts = np.arange(1,
                                    np.max(self.ann_df[self.ann_df.chrom == chrom].stop.values) + 1)
             df_ = self.ann_df[self.ann_df.chrom == chrom]
-    
             pos_starts, pos_stops = self._calculate_interval(df_)
             number_of_pos.append(np.sum(pos_stops - pos_starts))
     
@@ -429,7 +441,7 @@ class SparseDataset(object):
             else:
                 new_df = new_df.append(df_)
         return new_df
-        
+
     def _get_labels(self):
         nb_types = len(self.ann_df.type.unique())
         nb_labels = len(self.ann_df.label.unique())
@@ -443,59 +455,71 @@ class SparseDataset(object):
             df_ = self.ann_df[self.ann_df.chrom == chrom]
             pos_starts, pos_stops = self._calculate_interval(df_,
                                                              return_all=True)
-
-            intervals_ann = [I.closed(df_.start.iloc[i], df_.stop.iloc[i])\
-                             for i in range(len(df_))]
-            intervals_seq = [I.closed(pos_starts[i], pos_stops[i])\
-                             for i in range(len(pos_stops))]
-
             if self.seq2seq:
-                labels_ = np.zeros((len(intervals_seq),
+                labels_ = np.zeros((len(pos_starts),
                                     self.length,
                                     nb_types,
                                     nb_labels))
-
-                for j, interval_seq in enumerate(intervals_seq):
-                    local_df = df_[df_.start < interval_seq.upper]
-                    local_df = local_df[local_df.stop > interval_seq.lower]
-                    intervals_ann = [I.closed(local_df.start.iloc[i],
-                                              local_df.stop.iloc[i]) for i in range(len(local_df))]
-
-                    for i, interval_ann in enumerate(intervals_ann):
-                        inter =  interval_seq.intersection(interval_ann)
-                        row = local_df.iloc[i]
-                        inter = inter.replace(lower=lambda x : x - interval_seq.lower,
-                                              upper=lambda x : x - interval_seq.lower)
-                        labels_[j,
-                                inter.lower : inter.upper,
-                                row.type - 1,
-                                row.label - 1] = 1
-
-            elif not self.seq2seq and self.defined_positive == 'match_all':
-                labels_ = np.zeros((len(intervals_seq),
-                                   nb_types,
-                                   nb_labels))
-
-                for j, interval_seq in enumerate(intervals_seq):
-                    local_df = df_[df_.start >= interval_seq.lower]
-                    local_df = local_df[local_df.stop <= interval_seq.upper]
-
-                    for i in range(len(local_df)):
-                        row = local_df.iloc[i]
-                        labels_[j, row.type - 1, row.label - 1] = 1
-
-            elif not self.seq2seq and self.defined_positive == 'match_any':
-                labels_ = np.zeros((len(intervals_seq),
+            else:
+                labels_ = np.zeros((len(pos_starts),
                                     nb_types,
                                     nb_labels))
+            for label in np.unique(df_.label.values):
+                for cell_type in np.unique(df_.type.values):
+                    local_df = df_[df_.label == label]
+                    local_df = local_df[local_df.type == cell_type]
 
-                for j, interval_seq in enumerate(intervals_seq):
-                    local_df = df_[df_.start < interval_seq.upper]
-                    local_df = local_df[local_df.stop > interval_seq.lower]
+                    SIZE = 10000
+                    for first_idx in np.append(np.arange(0, len(pos_starts), SIZE),
+                                               np.array(len(pos_starts))):
 
-                    for i in range(len(local_df)):
-                        row = local_df.iloc[i]
-                        labels_[j, row.type - 1, row.label - 1] = 1
+                        pos_starts_ = pos_starts[first_idx : first_idx + SIZE]
+                        pos_stops_ = pos_stops[first_idx : first_idx + SIZE]
+
+                        mat_ann_start = np.repeat(local_df.start.values,
+                                                  len(pos_starts_)).\
+                                                  reshape(len(local_df),
+                                                          len(pos_starts_)).T
+                        mat_int_start = np.repeat(pos_starts_,
+                                                  len(local_df)).\
+                                                  reshape(len(pos_starts_),
+                                                          len(local_df))
+                        mat_ann_stop = np.repeat(local_df.stop.values,
+                                                 len(pos_stops_)).\
+                                                 reshape(len(local_df),
+                                                         len(pos_stops_)).T
+                        mat_int_stop = np.repeat(pos_stops_,
+                                                 len(local_df)).\
+                                                 reshape(len(pos_stops_),
+                                                         len(local_df))
+                        if self.seq2seq:
+                            _, indexes, _ = np.intersect1d(np.where(mat_ann_start - mat_int_stop < 0)[0],
+                                                     np.where(mat_ann_stop - mat_int_start > 0)[0],
+                                                     return_indices=True)
+                            idx_int, idx_ann = np.where(mat_ann_start - mat_int_stop < 0)
+                            idx_int = idx_int[indexes]
+                            idx_ann = idx_ann[indexes]
+                            
+                            offset_start = mat_ann_start - mat_int_start
+                            offset_stop = mat_int_stop - mat_ann_stop
+        
+                            for i, j in zip(idx_int, idx_ann):
+                                labels_[i + first_idx,
+                                        max(offset_start[i, j], 0) :\
+                                        labels_.shape[1] - max(offset_stop[i,j], 0),
+                                        cell_type - 1,
+                                        label - 1] = 1
+        
+                        elif not self.seq2seq and self.defined_positive == 'match_all':
+                            indexes = np.intersect1d(np.where(mat_ann_start - mat_int_start >= 0)[0],
+                                                     np.where(mat_ann_stop - mat_int_stop <= 0)[0])
+                            indexes += first_idx
+                            labels_[indexes, cell_type - 1, label - 1] = 1
+                        elif not self.seq2seq and self.defined_positive == 'match_any':
+                            indexes = np.intersect1d(np.where(mat_ann_start - mat_int_stop < 0)[0],
+                                                     np.where(mat_ann_stop - mat_int_start > 0)[0])
+                            indexes += first_idx
+                            labels_[indexes, cell_type - 1, label - 1] = 1
 
             labels = np.append(labels, labels_, axis=0)
 

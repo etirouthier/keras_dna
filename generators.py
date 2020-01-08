@@ -26,6 +26,10 @@ class Generator(object):
          one-hot-encoding:
              whether or not the inputs is one-hot-encoded (False: string)
              default: True
+         output_shape:
+             How to modify the shape of the output (because the initial output
+             structure is (batch, length, nb_types, nb_annotation) or (batch,
+             nb_types, nb_annotation))
          args:
              arguments specific to the different dataloader that can be used.
          kwargs:
@@ -34,9 +38,11 @@ class Generator(object):
     
     def __init__(self, batch_size,
                        one_hot_encoding=True,
+                       output_shape=None,
                        *args,
                        **kwargs):
         self.one_hot_encoding = one_hot_encoding
+        self.output_shape = output_shape
         self.frame = inspect.currentframe()
         
         if self.one_hot_encoding:
@@ -61,7 +67,13 @@ class Generator(object):
                 for num in range(number_of_batches):
                     batch_indexes = indexes[num*batch_size : (num + 1) * batch_size]
                     data = dataset[list(batch_indexes)]
-                    yield data['inputs'], data['targets']
+                    inputs = data['inputs']
+                    outputs = data['targets']
+                    
+                    if self.output_shape:
+                        outputs = outputs.reshape((outputs.shape[0],) +\
+                                                  self.output_shape[1:])
+                    yield inputs, outputs
             
         return generator_function(self.dataset, self.batch_size)
     
@@ -89,13 +101,19 @@ class MultiGenerator(object):
         inst_per_dataset:
             list of integer, number of example to be taken from each dataset.
             default='all'
+        output_shape:
+             How to modify the shape of the output (because the initial output
+             structure is (batch, length, nb_types, nb_annotation) or (batch,
+             nb_types, nb_annotation))
     """
     def __init__(self, batch_size,
                        dataset_list,
-                       inst_per_dataset='all'):
+                       inst_per_dataset='all',
+                       output_shape=None):
         self.dataset_list = dataset_list
         self.batch_size = batch_size
         self.inst_per_dataset = inst_per_dataset
+        self.output_shape = output_shape
         self.frame = inspect.currentframe()
 
     def __call__(self):
@@ -119,7 +137,10 @@ class MultiGenerator(object):
                         data = list_of_dataset[dataset_index][sub_batch_indexes[:, 1].tolist()]
                         inputs = self._append_data(inputs, data['inputs'])
                         targets = self._append_data(targets, data['targets'])
-                    yield inputs, targets
+                        if self.output_shape:
+                            targets = targets.reshape((targets.shape[0],) +\
+                                                      self.output_shape[1:])
+                        yield inputs, targets
             
         return generator_function(self.dataset_list, self.batch_size)
 
