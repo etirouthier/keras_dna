@@ -11,6 +11,7 @@ import inspect
 from copy import deepcopy
 
 from sequence import SeqIntervalDl, StringSeqIntervalDl
+from normalization import Weights
 from utils import ArgumentsDict
 
 class Generator(object):
@@ -30,6 +31,21 @@ class Generator(object):
              How to modify the shape of the output (because the initial output
              structure is (batch, length, nb_types, nb_annotation) or (batch,
              nb_types, nb_annotation))
+         weighting_mode:
+            {None, 'balanced', tuple(weights, bins), tuple(weight_pos, weight_neg)}
+            the methodology to set the weights.
+            For continuous dataset a tuple with the weights to apply and the
+            bins can be parsed (len(weights) == len(bins) - 1, and the smallest
+            bin must be smaller than the minimum of the data.)
+            For sparse dataset a tuple with the weight to apply for positive
+            (in [0]) and negative class (in [1]). Positive class refers to
+            labels with at least one positive value.
+            default: None
+        bins:
+            number of bins to apply to a continuous dataset before calculating
+            the probability of classes. Can also be an array of bins or 'auto'
+            for on optimized shearch of bins.
+            default='auto'
          args:
              arguments specific to the different dataloader that can be used.
          kwargs:
@@ -39,10 +55,14 @@ class Generator(object):
     def __init__(self, batch_size,
                        one_hot_encoding=True,
                        output_shape=None,
+                       weighting_mode=None,
+                       bins='auto',
                        *args,
                        **kwargs):
         self.one_hot_encoding = one_hot_encoding
         self.output_shape = output_shape
+        self.weighting_mode = weighting_mode
+        self.bins = bins
         self.frame = inspect.currentframe()
         
         if self.one_hot_encoding:
@@ -52,6 +72,11 @@ class Generator(object):
             self.dataset = StringSeqIntervalDl(*args,
                                                **kwargs)
         self.batch_size = batch_size
+        
+        if self.weighting_mode:
+            self.weights = Weights(self.dataset,
+                                   self.weighting_mode,
+                                   self.bins)
 
     def __call__(self):
         """Returns a generator to train a keras model (yielding inputs and
@@ -73,7 +98,12 @@ class Generator(object):
                     if self.output_shape:
                         outputs = outputs.reshape((outputs.shape[0],) +\
                                                   self.output_shape[1:])
-                    yield inputs, outputs
+                    if self.weighting_mode:
+                        weights = self.weights.find_weights(outputs)
+                        
+                        yield inputs, outputs, weights
+                    else:
+                        yield inputs, outputs
             
         return generator_function(self.dataset, self.batch_size)
     

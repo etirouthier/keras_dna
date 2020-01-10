@@ -116,35 +116,11 @@ def gff_to_df(gff_file, annotation_list):
 
 def bedGraph_to_df(bedGraph, chrom_size):
     os.system('ucsc-utils/bedGraphToBigWig ' + bedGraph + \
-              ' ' + chrom_size + ' ' + 'tmp.bw')
-    df = bigwig_to_df('tmp.bw')
-    
-    os.remove('tmp.bw')
-    return df
+              ' ' + chrom_size + ' ' + bedGraph[:-8] + 'bw')
 
 def wig_to_df(wig, chrom_size):
     os.system('ucsc-utils/wigToBigWig ' + wig + \
-              ' ' + chrom_size + ' ' + 'tmp.bw')
-    df = bigwig_to_df('tmp.bw')
-    
-    os.remove('tmp.bw')
-    return df
-
-def bigwig_to_df(bigfile):
-    bw = pyBigWig.open(bigfile)
-    df = pd.DataFrame()
-    
-    for name, length in bw.chroms().items():
-        df_ = pd.DataFrame()
-        label = np.array(bw.values(name, 0, length))
-        label[np.isnan(label)] = 0
-        df_['label'] = label
-        df_['pos_on_chrom'] = np.arange(length)
-        df_['chrom'] = name
-        
-        df = df.append(df_)
-    
-    return df
+              ' ' + chrom_size + ' ' + wig[:-3] + 'bw')
 
 def bbi_extractor(interval, bbi_files, final_dummy_axis=False):
     """

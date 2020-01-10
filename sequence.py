@@ -545,6 +545,8 @@ class ContinuousDataset(object):
             downsampled to reach a smaller length. Downsampling can be achived
             by taking one value from several ones or by averaging the values
             within small window.
+            Note that wig and bedGraph will be converted and a file with the
+            chromosomes size is needed.
     
     args:
         annotation_files:
@@ -587,6 +589,10 @@ class ContinuousDataset(object):
             list of chromosome names to omit from the dataset. default=None
         ignore_targets: 
             if True, target variables are ignored, default=False
+        size:
+            A file with the chromosome name and size usefull to convert wig
+            and bedGraph to bigwig.
+            default= None
     """
     def __init__(self, annotation_files,
                        window,
@@ -598,7 +604,8 @@ class ContinuousDataset(object):
                        num_chr=False,
                        incl_chromosomes=None,
                        excl_chromosomes=None,
-                       ignore_targets=False):
+                       ignore_targets=False,
+                       size=None):
         
         self.annotation_files = annotation_files
         self.nb_annotation_type = nb_annotation_type
@@ -613,13 +620,28 @@ class ContinuousDataset(object):
         self.excl_chromosomes = excl_chromosomes
         self.ignore_targets = ignore_targets
         self.df = pd.DataFrame()
+        self.size = size
         self.frame = inspect.currentframe()
 
         # converting to list type to consistancy with the case of multi-outputs
         if not isinstance(self.annotation_files, list):
             self.annotation_files = [self.annotation_files]
-        self.chrom_size = dict()    
+        self.chrom_size = dict()
         
+        for idx, annotation_file in enumerate(self.annotation_files):
+            if annotation_file.endswith('.wig'):
+                assert self.size is not None,\
+                '''To use wig file a file with the chromosome size must be
+                parsed a size'''
+                utils.wig_to_df(annotation_file, self.size)
+                self.annotation_files[idx] = annotation_file[:-3] + 'bw'
+            if annotation_file.endswith('.bedGraph'):
+                assert self.size is not None,\
+                '''To use bedGraph file a file with the chromosome size must be
+                parsed a size'''
+                utils.bedGraph_to_df(annotation_file, self.size)
+                self.annotation_files[idx] = annotation_file[:-8] + 'bw'
+
         if self.annotation_files[0].endswith(('.wig', '.bw', 'bedGraph')):
             bw = pyBigWig.open(self.annotation_files[0])
             # omit data outside chromosomes

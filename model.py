@@ -44,12 +44,17 @@ class ModelWrapper(object):
             The chromosome used as validation set (if no generator_val passed,
             the generator_val will be the same as generator_train except for
             the incl_chromosomes)
+        weights_val:
+            boolean, weither or not to include the training weights in
+            validation.
+            default=False
     """
     def __init__(self,
                  model,
                  generator_train,
                  generator_val=None,
-                 validation_chr=None):
+                 validation_chr=None,
+                 weights_val=False):
         self.model = model
         self.generator_train = generator_train
 
@@ -58,6 +63,9 @@ class ModelWrapper(object):
         elif validation_chr:
             command_dict = deepcopy(self.generator_train.command_dict.as_input())
             command_dict['incl_chromosomes'] = validation_chr
+
+            if not weights_val:
+                command_dict['weighting_mode'] = None
             self.generator_val = Generator(**command_dict)
 
     def train(self,
