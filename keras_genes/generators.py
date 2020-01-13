@@ -10,9 +10,9 @@ import numpy as np
 import inspect
 from copy import deepcopy
 
-from sequence import SeqIntervalDl, StringSeqIntervalDl
-from normalization import Weights
-from utils import ArgumentsDict
+from .sequence import SeqIntervalDl, StringSeqIntervalDl
+from .normalization import Weights
+from .utils import ArgumentsDict
 
 class Generator(object):
     """

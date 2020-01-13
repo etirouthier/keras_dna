@@ -15,7 +15,7 @@ from kipoiseq.transforms.functional import resize_interval
 
 
 from MyModuleLibrary.array_modifier import rolling_window
-from normalization import Normalizer, BiNormalizer
+from .normalization import Normalizer, BiNormalizer
 
 
 class bbi_extractor(object):

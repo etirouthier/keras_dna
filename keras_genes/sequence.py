@@ -23,8 +23,8 @@ from kipoiseq.transforms.functional import fixed_len
 from kipoiseq.utils import DNA
 
 
-import utils
-from extractors import bbi_extractor
+from . import utils
+from .extractors import bbi_extractor
 
 
 class SparseDataset(object):

@@ -17,10 +17,10 @@ from keras.models import Model
 from keras import Input
 
 
-from generators import Generator, MultiGenerator, PredictionGenerator
-from sequence import SeqIntervalDl, StringSeqIntervalDl
-from evaluation import Auc, Correlate
-from layers import Project1D
+from .generators import Generator, MultiGenerator, PredictionGenerator
+from .sequence import SeqIntervalDl, StringSeqIntervalDl
+from .evaluation import Auc, Correlate
+from .layers import Project1D
     
 
 class ModelWrapper(object):
