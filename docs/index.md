@@ -75,36 +75,35 @@ generator = Generator(batch_size=64,
                       annotation_files=['annotation.bw'],
                       window=100)
                       
- model = Sequential()
- ### the model need to be compiled
- model.compile(loss='mse', optimizer='adam')
+model = Sequential()
+### the model need to be compiled
+model.compile(loss='mse', optimizer='adam')
  
- wrapper = ModelWrapper(model=model,
-                        generator_train=generator)
- ```
+wrapper = ModelWrapper(model=model,
+                       generator_train=generator)
+```
  
- Train the model with `.train()`
- ```python
- wrapper.train(epochs=10)
- ```
+Train the model with `.train()`
+```python
+wrapper.train(epochs=10)
+```
  
- Evaluate the model on a chromosome with `.evaluate()`
-  ```python
- wrapper.evaluate(incl_chromosomes=['chr1'])
-  ```
+Evaluate the model on a chromosome with `.evaluate()`
+```python
+wrapper.evaluate(incl_chromosomes=['chr1'])
+```
 
- Predict on a chromosome with `.predict()`
-  ```python
- wrapper.predict(incl_chromosomes=['chr1'], chrom_size='species.chrom.sizes')
-  ```
+Predict on a chromosome with `.predict()`
+```python
+wrapper.predict(incl_chromosomes=['chr1'], chrom_size='species.chrom.sizes')
+```
 
- Save the wrapper in hdf5 with `.save()`
-  ```python
- wrapper.save(path='./path/to/wrapper', save_model=True)
- ```
+Save the wrapper in hdf5 with `.save()`
+```python
+wrapper.save(path='./path/to/wrapper', save_model=True)
+```
  
 ------------------
-
 
 ## Installation:
 
