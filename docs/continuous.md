@@ -147,3 +147,5 @@ generator = Generator(batch_size=64,
                       window=299,
                       overlapping=False)
 ```
+
+------------------------
