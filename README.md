@@ -1,11 +1,11 @@
-# Keras_dna: Simplifying the deep genomics
+# Keras_dna: Simplifying deep genomics
 
 ![Keras_dna logo](/docs/favicon.ico)
 
 [![Build Status](https://travis-ci.org/keras-team/keras.svg?branch=master)](https://travis-ci.org/keras-team/keras)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/keras-team/keras/blob/master/LICENSE)
 
-## Description
+## Description:
 
 Keras_dna is an API that help quick experimentation of application of deep learning to genomics. It anables to quickly feed a keras model with genomic data without the need of laborious file convertion and storing tremendous amount of converted data. It reads the most commun bioinformatics file types and create a generator adapted to a keras model.
 
@@ -22,7 +22,7 @@ Keras is compatible with: __Python 3.6__.
 
 ------------------
 
-## Guiding principles
+## Guiding principles:
 
 - Fournishing a simplified API to create generator of genomical data.
 
@@ -35,7 +35,7 @@ Keras is compatible with: __Python 3.6__.
 ------------------
 
 
-## Getting started
+## Getting started:
 
 The core data structures of Keras_dna are a __generator__, to feed the keras model with genomical data, and a __modelwrapper__ to unify the keras model to its keras_dna generator.
 
@@ -62,10 +62,10 @@ generator = Generator(batch_size=64,
                       annotation_files=['annotation.bw'],
                       window=100)
 ```
+`Generator` owns a lot of keywords to adapt the format of the data to the keras model and to adapt to our task (predicting several annotation at the same time in different cellular type, adding a secondary input, adding a secondary target...)
 
 
-
-`ModelWrapper` is a class designed to unify a keras model to its generator so that to simplify the further utilisation of the model (prediction, evaluation). 
+`ModelWrapper` is a class designed to unify a keras model to its generator so that to simplify further utilisations of the model (prediction, evaluation). 
 
 ```python
 from keras_gpu import ModelWrapper, Generator
@@ -107,12 +107,52 @@ generator = Generator(batch_size=64,
 ------------------
 
 
-## Installation
+## Installation:
 
 
+**Dependencies**:
 
+- pandas
+- numpy
+- pybedtools
+- pyBigWig
+- kipoi
+- kipoiseq
+- keras
+- tensorflow
+              
+ We also strongly advice to install [genomelake](https://github.com/kundajelab/genomelake) for fast reading in fasta file. 
  
- 
+ - **Install Keras_dna from PyPI:**
+
+Note: These installation steps assume that you are on a Linux or Mac environment.
+If you are on Windows, you will need to remove `sudo` to run the commands below.
+
+```sh
+sudo pip install keras_dna
+```
+
+If you are using a virtualenv, you may want to avoid using sudo:
+
+```sh
+pip install keras_dna
+```
+
+- **Alternatively: install Keras_dna from the GitHub source:**
+
+First, clone Keras using `git`:
+
+```sh
+git clone 
+```
+
+ Then, `cd` to the Keras_dna folder and run the install command:
+```sh
+cd keras_dna
+sudo python setup.py install
+```
+
+------------------
  
  
  
