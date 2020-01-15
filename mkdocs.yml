@@ -3,7 +3,7 @@ nav:
         - Home: index.md
         - Generator:
                 Sparse data:  sparse.md
-                Continuous data: continupus.md
+                Continuous data: continuous.md
                 Commun features: generators.md
         - MultiGenerator:
                 StrinSeqIntervalDl: string.md
