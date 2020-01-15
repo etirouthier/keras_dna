@@ -1,5 +1,7 @@
-site_name: MkLorum
+site_name: Keras_genes Documentation
 nav:
         - Home: index.md
+        - User Guide:
+                Getting started:  getting_started.md
 theme: readthedocs
 site_favicon: favicon.ico
