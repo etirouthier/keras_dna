@@ -119,9 +119,9 @@ wrapper.save(path='./path/to/wrapper', save_model=True)
 - keras
 - tensorflow
               
- We also strongly advice to install [genomelake](https://github.com/kundajelab/genomelake) for fast reading in fasta file. 
+We also strongly advice to install [genomelake](https://github.com/kundajelab/genomelake) for fast reading in fasta file. 
  
- - **Install Keras_dna from PyPI:**
+- **Install Keras_dna from PyPI:**
 
 Note: These installation steps assume that you are on a Linux or Mac environment.
 If you are on Windows, you will need to remove `sudo` to run the commands below.
