@@ -1,8 +1,19 @@
 site_name: Keras_genes Documentation
 nav:
         - Home: index.md
-        - Getting started::
-                Guide to Generator:  generators.md
-                Guide to ModelWrapper: modelwrapper.md
+        - Generator:
+                Sparse data:  sparse.md
+                Continuous data: continupus.md
+                Commun features: generators.md
+        - MultiGenerator:
+                StrinSeqIntervalDl: string.md
+                SeqIntervalDl: seq.md
+                MultiGenerator: multigenerator.md
+        - ModelWrapper:
+                Getting started: modelwrapper.md
+                Advanced use: modelwrapperadvanced.md
+        - Other:
+                Normalization: normalization.md
+                Weights: weights.md
 theme: readthedocs
 site_favicon: favicon.ico
