@@ -77,7 +77,7 @@ generator = Generator(batch_size=64,
                       
  model = Sequential()
  ### the model need to be compiled
- model.compile(loss='mse, optimizer='adam')
+ model.compile(loss='mse', optimizer='adam')
  
  wrapper = ModelWrapper(model=model,
                         generator_train=generator)
