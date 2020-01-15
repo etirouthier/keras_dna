@@ -1,4 +1,4 @@
-# Keras_dna: Simplifying deep genomics
+# Keras_dna: simplifying deep genomics
 
 ![Keras_dna logo](/docs/favicon.ico)
 
