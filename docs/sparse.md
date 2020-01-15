@@ -1,6 +1,5 @@
 # Generating sparse data
 
-----------------------------
 
 ## Introduction
 
@@ -78,6 +77,7 @@ generator = Generator(batch_size=64,
                       annotation_files=['annotation.gff'],
                       annotation_list=['gene'],
                       predict='start')
+
 ### Predicting the begining (TSS)
 generator = Generator(batch_size=64,
                       fasta_file='species.fa',
@@ -85,13 +85,13 @@ generator = Generator(batch_size=64,
                       annotation_list=['gene'],
                       predict='start')
                       
- ### Predicting the end
+### Predicting the end
 generator = Generator(batch_size=64,
                       fasta_file='species.fa',
                       annotation_files=['annotation.gff'],
                       annotation_list=['gene'],
                       predict='stop')
- ```
+```
  
 ## Data Augmentation
  
@@ -106,7 +106,7 @@ generator = Generator(batch_size=64,
                       annotation_files=['annotation.gff'],
                       annotation_list=['gene'],
                       data_augmentation=True)
- ```
+```
   
 **Warning :** This functionnality multiplies the number of instance and can be slow to implement...
   
