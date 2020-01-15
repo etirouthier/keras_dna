@@ -1,7 +1,8 @@
 site_name: Keras_genes Documentation
 nav:
         - Home: index.md
-        - User Guide:
-                Getting started:  getting_started.md
+        - Getting started::
+                Guide to Generator:  generators.md
+                Guide to ModelWrapper: modelwrapper.md
 theme: readthedocs
 site_favicon: favicon.ico
