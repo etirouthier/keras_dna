@@ -143,7 +143,7 @@ pip install keras_dna
 First, clone Keras using `git`:
 
 ```sh
-git clone 
+git clone https://github.com/etirouthier/keras_dna.git
 ```
 
  Then, `cd` to the Keras_dna folder and run the install command:
