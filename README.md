@@ -2,8 +2,7 @@
 
 ![Keras_dna logo](/docs/favicon.ico)
 
-[![Build Status](https://travis-ci.org/keras-team/keras.svg?branch=master)](https://travis-ci.org/keras-team/keras)
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/keras-team/keras/blob/master/LICENSE)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/etirouthier/keras_dna/LICENSE)
 
 ## Description:
 
