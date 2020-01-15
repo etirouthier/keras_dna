@@ -41,7 +41,7 @@ The core data structures of Keras_dna are a __generator__, to feed the keras mod
 
 `Generator` is able to create batch of DNA sequence corresponding to the desired annotation.
 
-First example, a `Generator` that will return the DNA sequence underlying a given sparse annotation (here binding site). The DNA sequence is fournished with a fasta file and the position of annotation is fournished with a gff file, the DNA is one-hot-encoded, the annotations that we want to target need to be passed in a list.
+First example, a `Generator` that will return the DNA sequence underlying a given sparse annotation (here binding site). The DNA sequence is fournished with a fasta file and the position of annotation is fournished with a gff file (could have been a bed), the DNA is one-hot-encoded, the annotations that we want to target need to be passed in a list.
 
 ```python
 from keras_gpu import Generator
@@ -52,7 +52,7 @@ generator = Generator(batch_size=64,
                       annotation_list=['binding site'])
 ```
 
-Second example, a `Generator` for continuous annotation, this time the file is a bigWig file, the window need to be passed (as well as the batch size and the fasta file). This generator will generate all the window of length 100 in the DNA and will label it with the coverage at the center nucleotid.
+Second example, a `Generator` for continuous annotation, this time the file is a bigWig file (it can also be passed with a wig or a bedGraph, but then a file containing the size of chromosome need to be passed as size), the window need to be passed (as well as the batch size and the fasta file). This generator will generate all the window of length 100 in the DNA and will label it with the coverage at the center nucleotid.
 
 ```python
 from keras_gpu import Generator
@@ -62,6 +62,8 @@ generator = Generator(batch_size=64,
                       annotation_files=['annotation.bw'],
                       window=100)
 ```
+
+
 
 `ModelWrapper` is a class designed to unify a keras model to its generator so that to simplify the further utilisation of the model (prediction, evaluation). 
 
@@ -80,20 +82,35 @@ generator = Generator(batch_size=64,
  
  wrapper = ModelWrapper(model=model,
                         generator_train=generator)
+ ```
  
- ### train the model
+ Train the model with `.train()`
+ ```python
  wrapper.train(epochs=10)
+ ```
  
- ### evaluate the model on a chromosome
+ Evaluate the model on a chromosome with `.evaluate()`
+  ```python
  wrapper.evaluate(incl_chromosomes=['chr1'])
- 
- ### predict on a chromosome
+  ```
+
+ Predict on a chromosome with `.predict()`
+  ```python
  wrapper.predict(incl_chromosomes=['chr1'], chrom_size='species.chrom.sizes')
- 
- ### save the wrapper
+  ```
+
+ Save the wrapper in hdf5 with `.save()`
+  ```python
  wrapper.save(path='./path/to/wrapper', save_model=True)
  ```
  
+------------------
+
+
+## Installation
+
+
+
  
  
  
