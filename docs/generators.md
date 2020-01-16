@@ -126,7 +126,8 @@ generator = Generator(batch_size=64,
 
 ## Adding a secondary inputs or labels
 
-`Generator` anables to add a secondary inputs or labels. This secondary inputs is necessarily a continous input and need to be passed with a bigWig file. It consists in the coverage on the interval where the DNA sequence was taken. Several keywords are used to adapt this secondary input to the needs (please refer to [Continuous Data](continuous.md) for details on the similar keywords): 
+`Generator` anables to add a secondary inputs or labels. This secondary inputs is necessarily a continous input and need to be passed with a bigWig file. It consists in the coverage on the interval where the DNA sequence was taken. Several keywords are used to adapt this secondary input to the needs (please refer to [Continuous Data](continuous.md) for details on the similar keywords):
+
 - `sec_inputs`: list of .bw file to use as secondary input, similar as `annotation_files`.
 - `sec_input_length`: the length of the sencondary input, similar to `tg_window` (default is the length of the DNA sequence).
 - `sec_input_shape`: the default shape is similar to what appends with a continuous data, this keyword anables to adapt.
