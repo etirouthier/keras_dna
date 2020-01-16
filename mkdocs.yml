@@ -4,7 +4,7 @@ nav:
         - Generator:
                 Sparse data:  sparse.md
                 Continuous data: continuous.md
-                Commun features: generators.md
+                Generator: generators.md
         - MultiGenerator:
                 StrinSeqIntervalDl: string.md
                 SeqIntervalDl: seq.md
