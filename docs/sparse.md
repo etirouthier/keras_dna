@@ -201,6 +201,21 @@ generator = Generator(batch_size=64,
                       annotation_list=['gene'],
                       negative_type='random')
 ```
+
+## Using the strand of the example
+
+If the passed annotation files precise the strand of the example of every annotation then by setting the keyword `use_strand` to True, the `Generator` will reverse complement the example in the backward strand. This may be useful for the model to read the DNA sequence like the cell machinery.
+
+```python
+from keras_dna import Generator
+
+### DNA sequence in the natural strand
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files=['annotation.gff'],
+                      annotation_list=['gene'],
+                      use_strand=True)
+```
 -----------------------------------
   
                       
