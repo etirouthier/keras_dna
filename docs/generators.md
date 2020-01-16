@@ -123,7 +123,7 @@ generator = Generator(batch_size=64,
                       alphabet_axis=1)                     
 ```
 
-## Reverse complemented the sequence
+## Reverse complement DNA sequences
 
 It is sometimes usefull to reverse complement the DNA sequence. `Generator` owns the keyword `rc` to to so.
 
@@ -137,6 +137,36 @@ generator = Generator(batch_size=64,
                       rc=True)
 
 ```
+
+## Name of chromosomes
+
+The annotation files and the fasta file are sometimes incoherent in there naming of chromosome. To correct a relatively frequent issue, the keyword `num_chr` can be useful, set to True it drop 'chr' from the annotation file chromosome name if present, set to False (default) it add 'chr' to the annotation file chromosome name if absent.
+
+```python
+from keras_dna import Generator
+
+### Fasta file use '1' and anotation_files 'chr1'
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files='ann.bw',
+                      window=299,
+                      num_chr=True)
+
+### Fasta file use 'chr1' and anotation_files '1'
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files='ann.bw',
+                      window=299,
+                      num_chr=False)
+
+### Fasta file use '1' and anotation_files '1'
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files='ann.bw',
+                      window=299,
+                      num_chr=True)
+```
+
 
 ## Adding a secondary inputs or labels
 
