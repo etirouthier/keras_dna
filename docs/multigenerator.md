@@ -30,7 +30,7 @@ generator = MultiGenerator(batch_size=64,
 
 Use the keyword `output_shape` to readapt the labels shape to your need (same principle as in [Generator](generator.md).
 
-## Changing the number if instance per dataset
+## Changing the number of instance per dataset
 
 If one need to control the number of instance that the generator will return for every dataset, one can use the keyword `inst_per_dataset`. A list of integer representing the number of instance for every dataset (same order) need to be passed. The default behaviour is to generate all the data available (which can lead to a bias toward one species).
 
