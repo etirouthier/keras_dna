@@ -14,7 +14,7 @@ There is to class of dataset :
 The `SeqIntervalDl` owns the same keyword as the `Generator` class except `batch_size`, `one-hot-encoding`, `output_shape`, `weighting_mode` and `bins`.
 
 
-Creating a SeqIntervalDl instance:
+Creating a `SeqIntervalDl` instance:
 ```python
 from keras_dna import SeqIntervalDl
 
@@ -73,27 +73,27 @@ dataset = SeqIntervalDl(fasta_file='species.fa',
 
 **Warning :** the default alphabet make the use of [genomelake](https://github.com/kundajelab/genomelake) possible leading to an increase of performance.
 
+The type of the np.ndarray created can be chosen using the keyword `dtype`.
+
 
 ## StringSeqIntervalDl
 
 
-The `SeqIntervalDl` owns the same keyword as the `SeqIntervalDl` class except `dummy_axis`, `alphabet_axis`, `alphabet` and `dtype`. 
+The `StringSeqIntervalDl` owns the same keyword as the `SeqIntervalDl` class except `dummy_axis`, `alphabet_axis`, `alphabet` and `dtype`. 
 
+Creating a `StringSeqIntervalDl` instance:
+```python
+from keras_dna import StringSeqIntervalDl
 
+### Minimal dataset for sparse data
+dataset = StringSeqIntervalDl(fasta_file='species.fa',
+                        annotation_files=['ann.gff'],
+                        annotation_list=['binding site'])
 
+### Minimal dataset for continuous data
+dataset = StringSeqIntervalDl(fasta_file='species.fa',
+                              annotation_files=['ann.bw'],
+                              window=299)
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--------------------------------
