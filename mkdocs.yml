@@ -6,8 +6,7 @@ nav:
                 Continuous data: continuous.md
                 Generator: generators.md
         - MultiGenerator:
-                StrinSeqIntervalDl: string.md
-                SeqIntervalDl: seq.md
+                Dataset: dataset.md
                 MultiGenerator: multigenerator.md
         - ModelWrapper:
                 Getting started: modelwrapper.md
