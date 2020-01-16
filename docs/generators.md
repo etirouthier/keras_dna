@@ -98,7 +98,6 @@ To handle highly unbalanced distributions such as in genomics, the need of addin
 Two keyword are necessary to adapt the shape of the DNA sequence: `alphabet_axis` that set the axis that will encode for ACTG, and dummy_axis if we want to add an axis will shape 1.
 
 ```python
-
 from keras_dna import Generator
 
 ### Standard input shape is (64, 299, 4)
@@ -124,6 +123,21 @@ generator = Generator(batch_size=64,
                       alphabet_axis=1)                     
 ```
 
+## Reverse complemented the sequence
+
+It is sometimes usefull to reverse complement the DNA sequence. `Generator` owns the keyword `rc` to to so.
+
+```python
+from keras_dna import Generator
+
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files='ann.bw',
+                      window=299,
+                      rc=True)
+
+```
+
 ## Adding a secondary inputs or labels
 
 `Generator` anables to add a secondary inputs or labels. This secondary inputs is necessarily a continous input and need to be passed with a bigWig file. It consists in the coverage on the interval where the DNA sequence was taken. Several keywords are used to adapt this secondary input to the needs (please refer to [Continuous Data](continuous.md) for details on the similar keywords):
@@ -137,27 +151,4 @@ generator = Generator(batch_size=64,
 - `use_sec_as`: {'targets', 'inputs'}.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-------------------------------------------------
