@@ -194,7 +194,7 @@ class ModelWrapper(object):
             """annotation_files must be a list with the name number of entries
             as annotation_files in the generator, complete with zeros if needed
             """
-            cell_indexes = np.where(np.array(annotation_files) != '0')
+            cell_indexes = np.where(np.array(annotation_files) != '0')[0]
 
         nb_annotation = len(dico['annotation_list'])
         
@@ -299,7 +299,7 @@ class ModelWrapper(object):
                 """annotation_files must be a list with the name number of
                 entries as annotation_files in the generator, complete with
                 zeros if needed"""
-            indexes = np.where(np.array(annotation_files) != '0')
+            indexes = np.where(np.array(annotation_files) != '0')[0]
             
         else:
             if isinstance(dico['annotation_files'], list):
