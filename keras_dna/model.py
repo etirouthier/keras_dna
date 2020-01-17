@@ -319,7 +319,9 @@ class ModelWrapper(object):
             eval_dict['fasta_file'] = fasta_file
 
         if annotation_files:
-            eval_dict['annotation_files'] = annotation_files
+            annotation_files = np.array(annotation_files)
+            annotation_files[annotation_files == '0'] = annotation_files[indexes[0]]
+            eval_dict['annotation_files'] = list(annotation_files)
 
         eval_dict['incl_chromosomes'] = incl_chromosomes
         eval_dict['batch_size'] = batch_size
