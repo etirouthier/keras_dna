@@ -1,5 +1,6 @@
 # Model Wrapper basics
 
+
 ## Introduction
 
 `ModelWrapper` is a class designed to unify the keras model to its corresponding keras_dna generator. It is especially useful to train, evaluate the model or predict with the model. The basics arguments are:
@@ -105,3 +106,6 @@ wrap.train(steps_per_epoch=500,
            validation_steps=200,
            callbacks=[checkpointer, early, tensorboard])
 ```
+
+
+   
