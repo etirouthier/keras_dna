@@ -67,3 +67,7 @@ wrap.get_auc(incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4'],
 ```
 
 For `MultiGenerator` this procedure need to be followed to specify the species on which one wants to evaluate the AUC.
+
+## Correlation
+
+Evaluating the correlation is a standard evaluation for continuous 
