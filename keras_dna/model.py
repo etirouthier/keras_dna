@@ -119,7 +119,7 @@ class ModelWrapper(object):
         self._update_hdf5(h5dict, self.generator_val.command_dict, 'val')
 
     def evaluate(self,
-                 incl_chromosomes,
+                 incl_chromosomes=None,
                  generator_eval=None,
                  *args,
                  **kwargs):
@@ -128,6 +128,8 @@ class ModelWrapper(object):
             assert generator_eval,\
             """generator_eval is needed to evaluate a MultiGenerator"""
         else:
+            assert incl_chromosomes,\
+            '''incl_chromosomes is needed'''
             command_dict = deepcopy(self.generator_train.command_dict.as_input())
             command_dict['incl_chromosomes'] = incl_chromosomes
             generator_eval = Generator(**command_dict)
