@@ -71,7 +71,7 @@ wrap = ModelWrapper(model=model,
                     generator_val=generator_val)
 ```
 
-## Training a model
+## Training a ModelWrapper
 
 Once the model wrapper is designed we can easily train the model with `.train()`, the only mandatory keyword is `epochs` to specify the number of epochs. One can also pass `steps_per_epoch` and `validation_steps` to specify but also pass all the available option accepted by the method `.fit_generator()` of a keras model.
 
@@ -107,7 +107,7 @@ wrap.train(steps_per_epoch=500,
            callbacks=[checkpointer, early, tensorboard])
 ```
 
-## Evaluate a generator
+## Evaluating a ModelWrapper
 
 To evaluate a generator on the desired chromosomes use `.evaluate()`. For a `Generator` one needs to specify the chromosomes to evaluate on with the keyword `incl_chromosomes`. For a `MultiGenerator` one needs to create a full generator and pass it with `generator_eval`. One can pass the keyword corresponding to `.evaluate_generator()` for a keras model.
 
@@ -178,7 +178,7 @@ generator_eval = MultiGenerator(batch_size=64, dataset_list=[dataset1_eval, data
 wrap.evaluate(generator_eval=generator_eval)
 ```
 
-## Predicting with a model
+## Predicting with a ModelWrapper
 
 Use `.predict()` to make some prediction with a `ModelWrapper`. One can choose the chromosomes on which to predict by specifying them with `incl_chromosomes` and by passing a file containing the chromosome length (in two tab separated columns, suffixe must be .chrom.sizes) with `chrom_size`. 
 
@@ -204,9 +204,9 @@ wrap.predict(incl_chromosomes=['chr1', 'chr2'],
 
 **Note :** prediction are made on all the available data in the specified chromosome even for sparse data, it will in this case display the probability of a nucleotid to belong to the target annotation.
 
-## Saving and loading a model
+## Saving a ModelWrapper
 
-To save a `ModelWrapper` use the method `.save()` with the path where it should be saved.
+To save a `ModelWrapper` use the method `.save()` with the path where it should be saved. It will save it in a hdf5 file, the keras model is saved as usual and a dictionary describing how to reconstruct the `Generator` is saved.
 
 Be aware of one subtleties, an usual keras callbacks is `ModelCheckpoint` that anables to save the best model obtained during the training, but the model continues to train after reaching its best. If after the training one saves the model using `.save()` the best model will be overwritten by the last obtained. To avoid this fact set the keyword `save_model` to False (it is the default behaviour).
 
@@ -241,7 +241,18 @@ wrap.train(epochs=100)
 wrap.save(path=path_to_output_file,
           save_model=True)
 ```
- -----------------------
+
+### Loading a ModelWrapper
+
+Loading a `ModelWrapper` consists in loading the keras model and reconstructing the same `Generator`.
+
+```python
+from keras_dna.model import load_wrapper
+
+wrapper = load_wrapper(path_to_model)
+```
+
+------------------------
 
 
 
