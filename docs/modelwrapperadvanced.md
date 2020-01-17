@@ -146,5 +146,5 @@ wrap.train(epochs=10)
 >>> wrap.get_correlation(incl_chromosomes=['chr6'],
                          fasta_file='species2',
                          annotation_files=[0, 0, 's2_cell2_ann1.bw', 's2_cell2_ann2.bw'])
-
+{'correlate_1_0' : 0.65, 'correlate_1_1' : 0.36}
 ```
