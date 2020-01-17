@@ -28,7 +28,7 @@ generator = MultiGenerator(batch_size=64,
 
 ## Changing labels shape
 
-Use the keyword `output_shape` to readapt the labels shape to your need (same principle as in [Generator](generator.md).
+Use the keyword `output_shape` to readapt the labels shape to your need (same principle as in [Generator](generators.md)).
 
 ## Changing the number of instance per dataset
 
