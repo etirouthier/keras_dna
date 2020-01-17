@@ -29,7 +29,7 @@ dataset = SeqIntervalDl(fasta_file='species.fa',
                         window=299)
 ```
 
-The DNA sequence is one-hot-encoded and we can adapt the shape of this sequence using `dummy_axis` and `alphabet_axis` (see [Generator](generator.md)).
+The DNA sequence is one-hot-encoded and we can adapt the shape of this sequence using `dummy_axis` and `alphabet_axis` (see [Generator](generators.md)).
 
 ```python
 from keras_dna import SeqIntervalDl
