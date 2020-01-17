@@ -68,6 +68,31 @@ wrap.get_auc(incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4'],
 
 For `MultiGenerator` this procedure need to be followed to specify the species on which one wants to evaluate the AUC.
 
+The number of file in annotation_list should be the same in both the generator and the `.get_auc()` method. If one wants to evaluate on less file one should complete the list with zeros and place the files at the position corresponding to there cell type.
+
+```python
+
+...
+
+from keras_dna import Generator, ModelWrapper
+
+generator = Generator(batch_size=64,
+                      fasta_file='species1.fa',
+                      annotation_files=['species1_cell1_ann.gff', 'species1_cell2_ann.gff', 'species1_cell3_ann.gff'],
+                      annotation_list=['binding site', 'enhancer'],
+                      incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4'])
+
+wrap = ModelWrapper(model=model,
+                    generator_train=generator,
+                    validation_chr=['chr5'])
+
+wrap.train(epochs=10)
+
+### Evaluating on another species but only on cell2 and cell3
+wrap.get_auc(incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4'],
+             fasta_file='species2.fa',
+             annotation_files=[0, 'species2_cell2_ann.gff', 'species2_cell3_ann.gff'])
+```
 ## Correlation
 
 Evaluating the correlation is a standard evaluation for continuous data. The method `.get_correlation()` fournishes the possibility of easily evaluating the correlation between the predicted and real coverage for every annotation and cell type.
@@ -97,7 +122,7 @@ wrap.train(epochs=10)
 ```
 In this example 'correlate_0_0' correspond to the correlation between the predicted coverage of ann1 on cell1 and the truth, 'correlate_0_1' for ann2 on cell1 an so on ...
 
-To calculate the correlation on another species or to evaluate a `MultiGenerator` one can pass a fasta fila and its corresponding annotation file with `fasta_file` and `annotation_files`.
+To calculate the correlation on another species or to evaluate a `MultiGenerator` one can pass a fasta file and its corresponding annotation file with `fasta_file` and `annotation_files`. Fill with zeros to exclude some cell type or annotation from the evaluation in the second species.
 
 ```python
 ...
@@ -105,8 +130,8 @@ To calculate the correlation on another species or to evaluate a `MultiGenerator
 from keras_dna import Generator, ModelWrapper
 
 generator = Generator(batch_size=64,
-                      fasta_file='species.fa',
-                      annotation_files=['cell1_ann1.bw', 'cell1_ann2.bw', 'cell2_ann1.bw', 'cell2_ann2.bw'],
+                      fasta_file='species1.fa',
+                      annotation_files=['s1_cell1_ann1.bw', 's1_cell1_ann2.bw', 's1_cell2_ann1.bw', 's1_cell2_ann2.bw'],
                       nb_annotation_type=2,
                       window=299,
                       incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4'])
@@ -117,7 +142,9 @@ wrap = ModelWrapper(model=model,
 
 wrap.train(epochs=10)
 
-### Correlation for every cell type and annotation
->>> wrap.get_correlation(incl_chromosomes=['chr6'])
+### Correlation for every cell type 2 in  species2
+>>> wrap.get_correlation(incl_chromosomes=['chr6'],
+                         fasta_file='species2',
+                         annotation_files=[0, 0, 's2_cell2_ann1.bw', 's2_cell2_ann2.bw'])
 
 ```
