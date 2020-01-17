@@ -73,7 +73,7 @@ wrap = ModelWrapper(model=model,
 
 ## Training a model
 
-Once the model wrapper is designed we can easily train the model with `.train()`, the only mandatory keyword is `epochs` to specify the number of epochs. One can also pass `steps_per_epoch` and `validation_steps` to specify but also pass all the available option accepted by the module `.fit_generator()` of a keras model.
+Once the model wrapper is designed we can easily train the model with `.train()`, the only mandatory keyword is `epochs` to specify the number of epochs. One can also pass `steps_per_epoch` and `validation_steps` to specify but also pass all the available option accepted by the method `.fit_generator()` of a keras model.
 
 ```python
 ...
@@ -177,6 +177,104 @@ generator_eval = MultiGenerator(batch_size=64, dataset_list=[dataset1_eval, data
 
 wrap.evaluate(generator_eval=generator_eval)
 ```
+
+## Predicting with a model
+
+Use `.predict()` to make some prediction with a `ModelWrapper`. One can choose the chromosomes on which to predict by specifying them with `incl_chromosomes` and by passing a file containing the chromosome length (in two tab separated columns, suffixe must be .chrom.sizes) with `chrom_size`. 
+
+One can also predict on another species by passing a fasta file to `fasta_file`, `chrom_size` must correspond. This option is mandatory in the case of a `MultiGenerator`. Prediction are saved if `export_to_path` is specified (one file per annotation in one cell type, the format is bigWig).
+
+```python
+...
+
+wrap = ModelWrapper(model=model,
+                    generator_train=generator,
+                    validation_chr=['chr6', 'chr7'])
+
+### Predict on the same species
+wrap.predict(incl_chromosomes=['chr8', 'chr9'],
+             chrom_size='species.chrom.sizes')
+             
+### Predict on another species and exporting to bigWig
+wrap.predict(incl_chromosomes=['chr1', 'chr2'],
+             chrom_size='species2.chrom.sizes',
+             fasta_file='species2.fa',
+             export_to_path='path/to/species2')
+```
+
+**Note :** prediction are made on all the available data in the specified chromosome even for sparse data, it will in this case display the probability of a nucleotid to belong to the target annotation.
+
+## Saving and loading a model
+
+To save a `ModelWrapper` use the method `.save()` with the path where it should be saved.
+
+Be aware of one subtleties, an usual keras callbacks is `ModelCheckpoint` that anables to save the best model obtained during the training, but the model continues to train after reaching its best. If after the training one saves the model using `.save()` the best model will be overwritten by the last obtained. To avoid this fact set the keyword `save_model` to False (it is the default behaviour).
+
+```python
+...
+
+wrap = ModelWrapper(model=model,
+                    generator_train=generator,
+                    validation_chr=['chr6', 'chr7'])
+
+from keras.callbacks import ModelCheckpoint
+
+checkpointer = ModelCheckpoint(filepath=path_to_output_file,
+                               monitor='val_loss',
+                               verbose=0, 
+                               save_best_only=True, 
+                               save_weights_only=False, 
+                               mode='min',
+                               period=1)
+
+wrap.train(steps_per_epoch=500, 
+           epochs=100,
+           validation_steps=200,
+           callbacks=[checkpointer])
+
+### The default behaviour does not overwritte the saved model
+wrap.save(path=path_to_output_file)
+
+wrap.train(epochs=100)
+
+### To save the model one needs to specify save_model=True
+wrap.save(path=path_to_output_file,
+          save_model=True)
+```
+ -----------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
