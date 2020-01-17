@@ -77,7 +77,7 @@ Once the model wrapper is designed we can easily train the model with `.train()`
 
 ```python
 ...
-wrap = wrap = ModelWrapper(model=model,
+wrap = ModelWrapper(model=model,
                     generator_train=generator_train,
                     generator_val=generator_val)
                     
@@ -107,5 +107,100 @@ wrap.train(steps_per_epoch=500,
            callbacks=[checkpointer, early, tensorboard])
 ```
 
+## Evaluate a generator
 
-   
+To evaluate a generator on the desired chromosomes use `.evaluate()`. For a `Generator` one needs to specify the chromosomes to evaluate on with the keyword `incl_chromosomes`. For a `MultiGenerator` one needs to create a full generator and pass it with `generator_eval`. One can pass the keyword corresponding to `.evaluate_generator()` for a keras model.
+
+
+Evaluation of a `Generator`:
+```python
+
+...
+
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files=['ann.bw'],
+                      window=299,
+                      incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4', 'chr5'])
+
+wrap = ModelWrapper(model=model,
+                    generator_train=generator,
+                    validation_chr=['chr6', 'chr7'])
+
+
+wrap.evaluate(incl_chromosomes=['chr8'])
+```
+
+Evaluation of a `MultiGenerator`:
+```python
+
+...
+
+dataset1_train = SeqIntervalDl(fasta_file='species1.fa',
+                               annotation_files=['ann1.bw'],
+                               window=299,
+                               incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4', 'chr5'])
+
+dataset2_train = SeqIntervalDl(fasta_file='species2.fa',
+                               annotation_files=['ann2.bw'],
+                               window=299,
+                               incl_chromosomes=['chr1', 'chr2', 'chr3'])
+                               
+dataset1_val = SeqIntervalDl(fasta_file='species1.fa',
+                               annotation_files=['ann1.bw'],
+                               window=299,
+                               incl_chromosomes=['chr6', 'chr7'])
+
+dataset2_val = SeqIntervalDl(fasta_file='species2.fa',
+                               annotation_files=['ann2.bw'],
+                               window=299,
+                               incl_chromosomes=['chr4'])
+
+generator_train = MultiGenerator(batch_size=64, dataset_list=[dataset1_train, dataset2_train])
+generator_val = MultiGenerator(batch_size=64, dataset_list=[dataset1_val, dataset2_val])
+
+wrap = ModelWrapper(model=model,
+                    generator_train=generator_train,
+                    generator_val=generator_val)
+                    
+dataset1_eval = SeqIntervalDl(fasta_file='species1.fa',
+                              annotation_files=['ann1.bw'],
+                              window=299,
+                              incl_chromosomes=['chr8', 'chr9'])
+
+dataset2_eval = SeqIntervalDl(fasta_file='species2.fa',
+                              annotation_files=['ann2.bw'],
+                              window=299,
+                              incl_chromosomes=['chr5'])
+
+generator_eval = MultiGenerator(batch_size=64, dataset_list=[dataset1_eval, dataset2_eval])
+
+wrap.evaluate(generator_eval=generator_eval)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
