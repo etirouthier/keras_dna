@@ -38,7 +38,7 @@ class ModelWrapper(object):
             A Generator or MultiGenerator instance to train the model.
         generator_val:
             The generator used to generate the validation set (usefull in the
-            case of a MultiGeneratoe).
+            case of a MultiGenerator).
             default=None            
         validation_chr:
             The chromosome used as validation set (if no generator_val passed,
@@ -120,16 +120,22 @@ class ModelWrapper(object):
 
     def evaluate(self,
                  incl_chromosomes,
+                 generator_eval=None,
                  *args,
                  **kwargs):
-        command_dict = deepcopy(self.generator_train.command_dict.as_input())
-        command_dict['incl_chromosomes'] = incl_chromosomes
-        generator_eval = Generator(**command_dict)
+        
+        if self.generator_train.__class__.__name__ == 'MultiGenerator':
+            assert generator_eval,\
+            """generator_eval is needed to evaluate a MultiGenerator"""
+        else:
+            command_dict = deepcopy(self.generator_train.command_dict.as_input())
+            command_dict['incl_chromosomes'] = incl_chromosomes
+            generator_eval = Generator(**command_dict)
 
         evaluations = self.model.evaluate_generator(generator=generator_eval(),
-                                                   steps=len(generator_eval),
-                                                   *args,
-                                                   **kwargs)
+                                                    steps=len(generator_eval),
+                                                    *args,
+                                                    **kwargs)
         return {metric : evaluation for metric, evaluation in\
                 zip(self.model.metric_names, evaluations)}
 

@@ -786,6 +786,10 @@ class StringSeqIntervalDl(Dataset):
             {int, 'maxlen'}, Length of the secondary sequences to be used as
             model input. If maxlen the length will be the same as the DNA seq.
             default='maxlen'
+        sec_input_shape:
+            The shape of the secondary inputs, in order to adapt this shape to
+            the need.
+            default=None.
         sec_nb_annotation:
             The number of different annotation in secondary input files.
             (see ContinuousDataset for details).
@@ -827,6 +831,7 @@ class StringSeqIntervalDl(Dataset):
                  use_strand=False,
                  sec_inputs=None,
                  sec_input_length='maxlen',
+                 sec_input_shape=None,
                  sec_nb_annotation=None,
                  sec_sampling_mode=None,
                  sec_normalization_mode=None,
@@ -843,6 +848,7 @@ class StringSeqIntervalDl(Dataset):
         self.pad_seq = False
         self.sec_inputs = sec_inputs
         self.sec_input_length = sec_input_length
+        self.sec_input_shape = sec_input_shape
         self.sec_nb_annotation = sec_nb_annotation
         self.sec_sampling_mode = sec_sampling_mode
         self.sec_normalization_mode = sec_normalization_mode
@@ -940,6 +946,9 @@ class StringSeqIntervalDl(Dataset):
                 seqs, sec_seqs, labels = utils.reverse_complement(seqs,
                                                                  labels,
                                                                  sec_seqs)
+            if self.sec_input_shape:
+                sec_seqs = sec_seqs.reshape((sec_seqs.shape[0],) + \
+                                             self.sec_input_shape[1:])
             if self.use_sec_as == 'inputs':
                 inputs = [np.array(seqs), sec_seqs]
             else:
@@ -987,12 +996,14 @@ class SeqIntervalDl(Dataset):
                 alphabet to use for the one-hot encoding. This defines the
                 order of the one-hot encoding.
                 Can either be a list or a string: 'ACGT' or ['A, 'C', 'G', 'T'].
-                Default: 'ACGT
+                Default: 'ACGT'
         dtype:
             doc: 'defines the numpy dtype of the returned array.
             Example: int, np.int32, np.float32, float'
-        args: arguments specific to the different dataloader that can be used
-        kwargs: dictionnary with specific arguments to the dataloader.
+        args: 
+            arguments specific to the different dataloader that can be used
+        kwargs: 
+            dictionnary with specific arguments to the dataloader.
     output_schema:
         inputs:
             name: seq

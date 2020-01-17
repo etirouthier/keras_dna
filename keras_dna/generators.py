@@ -17,10 +17,10 @@ from .utils import ArgumentsDict
 class Generator(object):
     """
     info:
-        doc: >
-            Generator for keras model able to yield inputs and targets in batch
-            by reading into a fasta file and a annotation file. Inputs are one-
-            hot-encoded or string.
+         doc: >
+             Generator for keras model able to yield inputs and targets in batch
+             by reading into a fasta file and a annotation file. Inputs are one-
+             hot-encoded or string.
      args:
          batch_size:
              number of example per batch pass to the model.
@@ -32,20 +32,20 @@ class Generator(object):
              structure is (batch, length, nb_types, nb_annotation) or (batch,
              nb_types, nb_annotation))
          weighting_mode:
-            {None, 'balanced', tuple(weights, bins), tuple(weight_pos, weight_neg)}
-            the methodology to set the weights.
-            For continuous dataset a tuple with the weights to apply and the
-            bins can be parsed (len(weights) == len(bins) - 1, and the smallest
-            bin must be smaller than the minimum of the data.)
-            For sparse dataset a tuple with the weight to apply for positive
-            (in [0]) and negative class (in [1]). Positive class refers to
-            labels with at least one positive value.
-            default: None
-        bins:
-            number of bins to apply to a continuous dataset before calculating
-            the probability of classes. Can also be an array of bins or 'auto'
-            for on optimized shearch of bins.
-            default='auto'
+             {None, 'balanced', tuple(weights, bins), tuple(weight_pos, weight_neg)}
+             the methodology to set the weights.
+             For continuous dataset a tuple with the weights to apply and the
+             bins can be parsed (len(weights) == len(bins) - 1, and the smallest
+             bin must be smaller than the minimum of the data.)
+             For sparse dataset a tuple with the weight to apply for positive
+             (in [0]) and negative class (in [1]). Positive class refers to
+             labels with at least one positive value.
+             default: None
+         bins:
+             number of bins to apply to a continuous dataset before calculating
+             the probability of classes. Can also be an array of bins or 'auto'
+             for on optimized shearch of bins.
+             default='auto'
          args:
              arguments specific to the different dataloader that can be used.
          kwargs:
@@ -96,8 +96,12 @@ class Generator(object):
                     outputs = data['targets']
                     
                     if self.output_shape:
-                        outputs = outputs.reshape((outputs.shape[0],) +\
-                                                  self.output_shape[1:])
+                        if isinstance(outputs, np.ndarray):
+                            outputs = outputs.reshape((outputs.shape[0],) +\
+                                                      self.output_shape[1:])
+                        else:
+                            outputs[0] = outputs.reshape((outputs[0].shape[0],) +\
+                                                          self.output_shape[1:])
                     if self.weighting_mode:
                         weights = self.weights.find_weights(outputs)
                         
@@ -128,10 +132,10 @@ class MultiGenerator(object):
          dataset_list:
              list of SeqIntervalDl or StringSeqIntervalDl example, the output
              shape need to be the same for all instance.
-        inst_per_dataset:
-            list of integer, number of example to be taken from each dataset.
-            default='all'
-        output_shape:
+         inst_per_dataset:
+             list of integer, number of example to be taken from each dataset.
+             default='all'
+         output_shape:
              How to modify the shape of the output (because the initial output
              structure is (batch, length, nb_types, nb_annotation) or (batch,
              nb_types, nb_annotation))
