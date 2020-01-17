@@ -9,6 +9,7 @@ Created on Wed Dec  4 14:35:42 2019
 import json
 from copy import deepcopy
 import pyBigWig
+import numpy as np
 
 
 from keras.utils.io_utils import H5Dict
@@ -142,13 +143,13 @@ class ModelWrapper(object):
                 zip(self.model.metric_names, evaluations)}
 
     def get_auc(self,
-                  incl_chromosomes,
-                  data_augmentation=True,
-                  fasta_file=None,
-                  annotation_file=None,
-                  curve='ROC',
-                  *args,
-                  **kwargs):
+                incl_chromosomes,
+                data_augmentation=True,
+                fasta_file=None,
+                annotation_files=None,
+                curve='ROC',
+                *args,
+                **kwargs):
         """
         Returns the auroc score for a sparse model for every annotation on
         every cellular type.
@@ -157,9 +158,9 @@ class ModelWrapper(object):
         annotation instance.
         """
         if self.generator_train.__class__.__name__ == 'MultiGenerator':
-            assert fasta_file and annotation_file,\
+            assert fasta_file and annotation_files,\
             """ To evaluate a MultiGenerator model, the fasta file and the
-            annotation file need to be passed as inputs."""
+            annotation files need to be passed as inputs."""
             command_dict = self.generator_train.command_dict[0]
 
             if 'sequence.SeqIntervalDl' in command_dict.get_details():
@@ -186,14 +187,20 @@ class ModelWrapper(object):
         else:
             nb_types = 1
 
-        if annotation_file:
-            nb_types = 1
+        if not annotation_files:
+            cell_indexes = range(nb_types)
+        else:
+            assert len(annotation_files) == nb_types,\
+            """annotation_files must be a list with the name number of entries
+            as annotation_files in the generator, complete with zeros if needed
+            """
+            cell_indexes = np.where(np.array(annotation_files) != '0')
 
         nb_annotation = len(dico['annotation_list'])
         
         eval_list = list()
 
-        for cell_idx in range(nb_types):
+        for cell_idx in cell_indexes:
             for idx, ann in enumerate(dico['annotation_list']):
                 eval_dict = deepcopy(command_dict.as_input())
 
@@ -201,8 +208,8 @@ class ModelWrapper(object):
                     eval_dict['fasta_file'] = fasta_file
 
                 eval_dict['data_augmentation'] = data_augmentation
-                if annotation_file:
-                    eval_dict['annotation_files'] = annotation_file
+                if annotation_files:
+                    eval_dict['annotation_files'] = annotation_files[cell_idx]
                 else:
                     annotation_file =\
                     command_dict.as_input()['annotation_files']
@@ -242,11 +249,11 @@ class ModelWrapper(object):
         return eval_list
 
     def get_correlation(self,
-                  incl_chromosomes,
-                  fasta_file=None,
-                  annotation_file=None,
-                  *args,
-                  **kwargs):
+                        incl_chromosomes,
+                        fasta_file=None,
+                        annotation_files=None,
+                        *args,
+                        **kwargs):
         """
         Returns the correlation between the experimental and predicted coverage
         for a continuous model for every annotation on every cellular type.
@@ -254,7 +261,7 @@ class ModelWrapper(object):
         using those data.
         """
         if self.generator_train.__class__.__name__ == 'MultiGenerator':
-            assert fasta_file and annotation_file,\
+            assert fasta_file and annotation_files,\
             """ To evaluate a MultiGenerator model, the fasta file and the
             annotation file need to be passed as inputs."""
             command_dict = self.generator_train.command_dict[0]
@@ -281,18 +288,38 @@ class ModelWrapper(object):
         else:
             nb_annotation = 1
  
-        if annotation_file:
-            nb_types = 1
+        if annotation_files:
+            if isinstance(dico['annotation_files'], list):
+                assert len(annotation_files) == len(dico['annotation_files']),\
+                """annotation_files must be a list with the name number of
+                entries as annotation_files in the generator, complete with
+                zeros if needed"""
+            else:
+                assert len(annotation_files) == 1,\
+                """annotation_files must be a list with the name number of
+                entries as annotation_files in the generator, complete with
+                zeros if needed"""
+            indexes = np.where(np.array(annotation_files) != '0')
+            
         else:
+            if isinstance(dico['annotation_files'], list):
+                indexes = range(len(dico['annotation_files']))
+            else:
+                indexes = [0]
+        
+        if isinstance(dico['annotation_files'], list):
             nb_types = len(dico['annotation_files']) // nb_annotation
+        else:
+            nb_types = 1
+        
 
         eval_dict = deepcopy(command_dict.as_input())
 
         if fasta_file:
             eval_dict['fasta_file'] = fasta_file
 
-        if annotation_file:
-            eval_dict['annotation_files'] = annotation_file
+        if annotation_files:
+            eval_dict['annotation_files'] = annotation_files
 
         eval_dict['incl_chromosomes'] = incl_chromosomes
         eval_dict['batch_size'] = batch_size
@@ -302,13 +329,10 @@ class ModelWrapper(object):
 
         generator_eval = Generator(**eval_dict)
         
-        metrics = list()
-        for cell_idx in range(nb_types):
-            for idx in range(nb_annotation):
-                metrics.append(Correlate(cell_idx,
-                                         idx,
-                                         nb_types,
-                                         nb_annotation).metric)
+        metrics = [Correlate(idx / nb_annotation,
+                             idx % nb_annotation,
+                             nb_types,
+                             nb_annotation).metric for idx in indexes]
                           
         model = clone_model(self.model)
         model.compile(optimizer=self.model.optimizer,
@@ -319,11 +343,9 @@ class ModelWrapper(object):
                                               steps=len(generator_eval),
                                               *args,
                                               **kwargs)
-        import itertools
-        return {'correlate_{}_{}'.format(cell_idx, idx) : evaluation for\
-                (cell_idx, idx), evaluation in zip(itertools.product(*[range(nb_types),
-                                                                       range(nb_annotation)]),
-                                                   evaluations[1:])}
+        
+        return {'correlate_{}_{}'.format(idx / nb_annotation,\
+                idx % nb_annotation) : evaluations[idx] for idx in indexes}
                 
     def predict(self,
                 incl_chromosomes,
