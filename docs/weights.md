@@ -33,7 +33,7 @@ from keras_dna import Generator
 
 generator = Generator(batch_size=64,
                       fasta_file='species.fa',
-                      annotation_files=['ann1.bw', ann2.bw],
+                      annotation_files=['ann1.bw', 'ann2.bw'],
                       weighting_mode='balanced',
                       bins=100)
 ```
@@ -44,8 +44,30 @@ from keras_dna import Generator
 
 generator = Generator(batch_size=64,
                       fasta_file='species.fa',
-                      annotation_files=['ann1.bw', ann2.bw],
+                      annotation_files=['ann1.bw', 'ann2.bw'],
                       normalization_mode='min_max',
                       weighting_mode=[([[0, 0.1, 0.2, 0.3, 0.4], [0, 0.2, 0.5, 0.8, 1]],
                                        [[0.5, 2, 3, 4], [0.1, 1, 2, 4]])
+```
+
+## Sparse dataset
+
+For sparse dataset the considered class for weighting are a positive class with a least one one in the labels and the negative class that are labeled by zeros, the distribution is the distribution of the example generated. One can ask to set automatically set weights for a balanced dataset or to pass the weights manually in a tuple (weights_positive, weights_negative).
+
+```python
+
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files=['ann1.gff', 'ann2.gff'],
+                      annotation_list=['gene'],
+                      predict='start',
+                      weighting_mode='balanced')
+                      
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files=['ann1.gff', 'ann2.gff'],
+                      annotation_list=['gene'],
+                      predict='start',
+                      negative_ratio='all',
+                      weighting_mode=(1000, 1))
 ```
