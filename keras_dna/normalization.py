@@ -67,6 +67,9 @@ class Normalizer(object):
         self.bw.close()
     
     def __call__(self, seq):
+        return self._normalize(seq)
+        
+    def _normalize(self, seq):
         if self.normalization == 'zscore':
             return (seq - self.mean) / self.std
         elif self.normalization == 'max':
@@ -112,6 +115,10 @@ class BiNormalizer(Normalizer):
         if self.normalization == 'min_max':
             self.max = np.max(self.sample)
             self.min = np.min(self.sample)
+
+    def __call__(self, seq):
+        seq = self.first_normalizer(seq)
+        return self._normalize(seq)
 
 
 def get_sample(bw, chrom_size, sampling_len=1000):
