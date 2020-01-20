@@ -38,7 +38,7 @@ generator = Generator(batch_size=64,
                       bins=100)
 ```
 
-Passing both the bins of the distribution and the weights that one wants to apply for the training. It should be a tuples ([bins_ann1, bins_ann2, ..., bins_annN], [weights_ann1, weights_ann2, ..., weights_annN]) with weights_ann1 being a list of weights to apply to the values from ann1.bw and bins_ann1 the corresponding bins (`len(weights_ann1) = len(bins_ann1) - 1`)
+Passing both the bins of the distribution and the weights that one wants to apply for the training. It should be a tuples `([bins_ann1, bins_ann2, ..., bins_annN], [weights_ann1, weights_ann2, ..., weights_annN])` with weights_ann1 being a list of weights to apply to the values from ann1.bw and bins_ann1 the corresponding bins (`len(weights_ann1) = len(bins_ann1) - 1`)
 ```python
 from keras_dna import Generator
 
