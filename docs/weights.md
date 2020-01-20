@@ -50,6 +50,8 @@ generator = Generator(batch_size=64,
                                        [[0.5, 2, 3, 4], [0.1, 1, 2, 4]])
 ```
 
+**Warning :** to use weights with a continuous generator one needs to compile the model setting `sample_weight_mode` to 'temporal'.
+
 ## Sparse dataset
 
 For sparse dataset the considered class for weighting are a positive class with a least one one in the labels and the negative class that are labeled by zeros, the distribution is the distribution of the example generated. One can ask to set automatically set weights for a balanced dataset or to pass the weights manually in a tuple `(weights_positive, weights_negative)`.
