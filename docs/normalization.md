@@ -18,8 +18,8 @@ generator = Generator(batch_size=64,
 
 Follow the previous example to apply only one normalization to the labels of the model. The available normalization type are :
 
-- `'zscore'`: substracting the mean of the mean of the values and dividing by the standard deviation. (`(values - np.mean(values)) / np.std(values)`)
-- `'max'`: dividing by the maximum of the values (`values / np.max(values)`)
+- `'zscore'`: substracting the mean of the mean of the values and dividing by the standard deviation.
+- `'max'`: dividing by the maximum of the values
 - `'perctrim'`: trimming the distribution to the last percentile (all values above are set equal to the last percentile)
 - `'logtransform'`: taking the log of the values : `np.log(values + 1)`
-- `'min_max'`: substracting `min` and dividing by `(max - min)`, the values are between 0 and 1 after. (`(values - np.min(values)) / (np.max(values) - np.min(values))`)
+- `'min_max'`: substracting `min` and dividing by `(max - min)`, the values are between 0 and 1 after.
