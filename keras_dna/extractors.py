@@ -14,7 +14,7 @@ import warnings
 from kipoiseq.transforms.functional import resize_interval
 
 
-from MyModuleLibrary.array_modifier import rolling_window
+from .utils import rolling_window
 from .normalization import Normalizer, BiNormalizer
 
 
