@@ -2,7 +2,7 @@
 
 ## Introduction
 
-As seen in [Generator](./generators.md) and in [MultiGenerator](./multigenerator.seq.md) there is some normalization that could be applied on continuous dataset.
+As seen in [Generator](./generators.md) and in [MultiGenerator](./multigenerator.md) there is some normalization that could be applied on continuous dataset.
 
 ```python
 from keras_dna import Generator
