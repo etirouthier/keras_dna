@@ -71,3 +71,5 @@ generator = Generator(batch_size=64,
                       negative_ratio='all',
                       weighting_mode=(1000, 1))
 ```
+
+----------------------------------------------
