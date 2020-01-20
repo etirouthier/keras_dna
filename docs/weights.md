@@ -52,7 +52,7 @@ generator = Generator(batch_size=64,
 
 ## Sparse dataset
 
-For sparse dataset the considered class for weighting are a positive class with a least one one in the labels and the negative class that are labeled by zeros, the distribution is the distribution of the example generated. One can ask to set automatically set weights for a balanced dataset or to pass the weights manually in a tuple (weights_positive, weights_negative).
+For sparse dataset the considered class for weighting are a positive class with a least one one in the labels and the negative class that are labeled by zeros, the distribution is the distribution of the example generated. One can ask to set automatically set weights for a balanced dataset or to pass the weights manually in a tuple `(weights_positive, weights_negative)`.
 
 ```python
 
