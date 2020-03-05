@@ -6,7 +6,7 @@
 
 ## Description:
 
-Keras_dna is an API that help quick experimentation of application of deep learning to genomics. It anables to quickly feed a keras model with genomic data without the need of laborious file convertion and storing tremendous amount of converted data. It reads the most commun bioinformatics file types and create a generator adapted to a keras model.
+Keras_dna is an API that help quick experimentation for applying deep learning to genomics. It enables to quickly feed a keras model (tensorflow) with genomic data without the need of laborious file convertion and storing tremendous amount of converted data. It reads the most commun bioinformatics file types and create a generator adapted to a keras model.
 
 Use Keras_dna if you need a library that:
 
@@ -36,7 +36,7 @@ Keras is compatible with: __Python 3.6__.
 
 ## Getting started:
 
-The core data structures of Keras_dna are a __generator__, to feed the keras model with genomical data, and a __modelwrapper__ to unify the keras model to its keras_dna generator.
+The core data structures of Keras_dna are a __generator__, to feed the keras model with genomical data, and a __modelwrapper__ to attach a keras model to its keras_dna generator.
 
 `Generator` is able to create batch of DNA sequence corresponding to the desired annotation.
 
