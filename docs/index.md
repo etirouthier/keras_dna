@@ -14,7 +14,7 @@ Use Keras_dna if you need a library that:
 - Is able to adapt to the needed format of data.
 - Facilitates the standard evaluation of a model with genomics data (correlation, AUPRC, AUROC)
 
-Read the documentation at [](https:).
+Read the documentation at [](https://keras-dna.readthedocs.io).
 
 Keras is compatible with: __Python 3.6__.
 
@@ -68,7 +68,7 @@ generator = Generator(batch_size=64,
 
 ```python
 from keras_gpu import ModelWrapper, Generator
-from keras.models import Sequential()
+from tensorflow.keras.models import Sequential()
 
 generator = Generator(batch_size=64,
                       fasta_file='species.fa',
@@ -116,8 +116,7 @@ wrapper.save(path='./path/to/wrapper', save_model=True)
 - pyBigWig
 - kipoi
 - kipoiseq
-- keras
-- tensorflow
+- tensorflow 2
               
 We also strongly advice to install [genomelake](https://github.com/kundajelab/genomelake) for fast reading in fasta file. 
  
@@ -135,6 +134,8 @@ If you are using a virtualenv, you may want to avoid using sudo:
 ```sh
 pip install keras_dna
 ```
+
+Note that libcurl (and the `curl-config` command) are required for installation. This is typically already installed on many Linux and OSX systems (this is also available easily if using a conda env).
 
 - **Alternatively: install Keras_dna from the GitHub source:**
 
