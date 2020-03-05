@@ -14,7 +14,6 @@ Use Keras_dna if you need a library that:
 - Is able to adapt to the needed format of data.
 - Facilitates the standard evaluation of a model with genomics data (correlation, AUPRC, AUROC)
 
-Read the documentation at [keras_dna](https://keras-dna.readthedocs.io).
 
 Keras is compatible with: __Python 3.6__.
 
