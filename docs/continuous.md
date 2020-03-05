@@ -1,8 +1,10 @@
-# Generating continuous data
+# Regression
 
 ## Introduction
 
-`Generator` can be use to feed a keras model with data that are annotated with a continuous function such as MNase or Chip-seq. The inputs file will then be a bigWig file, it can also be a wig or a bedGraph file but then another file containing the length of chromosome is needed (a conversion will be made using Kent's tools, two columns chrom, size tab separated). `Generator` will detect such files with the suffix .bw, .wig, .bedGraph. The length of the generated sequence needs to be passed with the keyword `window`.
+`Generator` can be use to feed a keras model with sequences that are annotated with a continuous function such as MNase or Chip-seq. The inputs file will then be a bigWig, a wig or a bedGraph file. `Generator` will detect such files with the suffix .bw, .wig, .bedGraph. The length of the generated sequence needs to be passed with the keyword `window`.
+
+Note that for wig and bedGraph file the chromosome size is needed.
 
 ```python
 from keras_dna import Generator
@@ -20,11 +22,11 @@ generator = Generator(batch_size=64,
                       window=299)
 ```
 
-The standard behaviour will be to generate all the sequence of window length in the DNA (one-hot-encoded) and to label it with the coverage at the centre nucleotide. The standard shape of DNA sequence is `(batch_size, window, 4)` and the standard labels shape is `(batch_size, tg_window, len(annotation_files))`, here `(64, 1, 1)`
+The standard behaviour will be to generate all the DNA subsequence of length equal to window (one-hot-encoded) and to label it with the coverage at the centre nucleotide. The standard shape of DNA subsequence is `(batch_size, window, 4)` and the standard labels shape is `(batch_size, tg_window, len(annotation_files))`, here `(64, 1, 1)`
 
-## Model for several cell types and annotation
+## Regression on several cell types and/or annotations
 
-`Generator` is also able to manage several cell types and annotation in the continuous context. Firstly, in this case one file corresponds to one annotation in one cell type, we use the keyword `nb_annotation_type` to sprecify the number of file one wants to predict. Then the list of file **needs to be organised** in the example.
+`Generator` is also enables to perform multiple regression on several cell types at the same time. In this case one argument file corresponds to one annotation in one cell type. Use the keyword `nb_annotation_type` to specify the number of regression one wants to perform on every cell type. Then the list of file **needs to be organised** as in the example.
 
 ```python
 from keras_dna import Generator
@@ -58,11 +60,11 @@ generator = Generator(batch_size=64,
 >>> next(generator())[1].shape
 (64, 1, 3)
 ```                      
-As shown in the last example this organisation is optionnal and without it all the labels are set in the 2nd axis.
+As shown in the last example this organisation is optionnal, without it all the labels are set in the 2nd axis.
 
-## Length of the target
+## Length of the labels
 
-`Generator` anables us to change the length of the labels of a window with the keyword `tg_window`. DNA sequences are labeled with another sequence of length `tg_window` representing the coverage (centered).
+`Generator` enables us to change the length of the labels corresponding to a DNA window with the keyword `tg_window`. DNA sequences are labeled with a sequence of number of length `tg_window` representing the coverage (centered).
 
 ```python
 from keras_dna import Generator
@@ -80,7 +82,7 @@ generator = Generator(batch_size=64,
 
 ## Downsampling
 
-As previously stated `Generator` can be used to train a seq2seq model, the first sequence being the DNA and the second the coverage, the default behaviour is to return the raw sequence of coverage values at the center of the DNA sequence. Using the keyword `downsampling` makes the `Generator` labelling the DNA sequence with the whole corresponding sequence of values but downsampled (if `tg_window` is smaller than `window` then it should divide `window`, if equal then `downsampling` is useless).
+As previously stated `Generator` can be used to train a seq2seq model, the first sequence being a DNA window and the second the coverage, the default behaviour is to return the raw sequence of coverage values at the center of the DNA window. Using the keyword `downsampling` the `Generator` labels the DNA window with the whole corresponding sequence of values but downsampled (if `tg_window` is smaller than `window` then it should divide `window`, if equal then `downsampling` is useless).
 
 ```python
 from keras_dna import Generator
@@ -124,11 +126,11 @@ generator = Generator(batch_size=64,
                       normalization_mode=['max', 'perctrim'])
 ```
 
-**Warning :** note that some normalization values are obtained by subsampling the data for memory and time purpose.
+**Warning :** note that some normalization parameters are obtained by subsampling the data for memory and time purpose.
 
-## Overlapping of sequence
+## Overlapping of sequences
 
-In the case of a seq2seq model the keyword `overlapping` anables to keep all the data available (i.e with overlapping targets) or to keep only the data with non overlapping targets.
+In the case of a seq2seq model the keyword `overlapping` enables to generate either all the data available (i.e with overlapping targets) or to generate only the data with non overlapping targets.
 
 ```python
 from keras_dna import Generator
