@@ -14,7 +14,7 @@ Use Keras_dna if you need a library that:
 - Is able to adapt to the needed format of data.
 - Facilitates the standard evaluation of a model with genomics data (correlation, AUPRC, AUROC)
 
-Read the documentation at [](https:).
+Read the documentation at [keras_dna](https://keras-dna.readthedocs.io).
 
 Keras is compatible with: __Python 3.6__.
 
@@ -43,7 +43,7 @@ The core data structures of Keras_dna are a __generator__, to feed the keras mod
 First example, a `Generator` that will return the DNA sequence underlying a given sparse annotation (here binding site). The DNA sequence is fournished with a fasta file and the position of annotation is fournished with a gff file (could have been a bed), the DNA is one-hot-encoded, the annotations that we want to target need to be passed in a list.
 
 ```python
-from keras_gpu import Generator
+from keras_dna import Generator
 
 generator = Generator(batch_size=64,
                       fasta_file='species.fa',
@@ -54,7 +54,7 @@ generator = Generator(batch_size=64,
 Second example, a `Generator` for continuous annotation, this time the file is a bigWig file (it can also be passed with a wig or a bedGraph, but then a file containing the size of chromosome need to be passed as size), the window need to be passed (as well as the batch size and the fasta file). This generator will generate all the window of length 100 in the DNA and will label it with the coverage at the center nucleotid.
 
 ```python
-from keras_gpu import Generator
+from keras_dna import Generator
 
 generator = Generator(batch_size=64,
                       fasta_file='species.fa',
@@ -67,8 +67,8 @@ generator = Generator(batch_size=64,
 `ModelWrapper` is a class designed to unify a keras model to its generator so that to simplify further utilisations of the model (prediction, evaluation). 
 
 ```python
-from keras_gpu import ModelWrapper, Generator
-from keras.models import Sequential()
+from keras_dna import ModelWrapper, Generator
+from tensorflow.keras.models import Sequential()
 
 generator = Generator(batch_size=64,
                       fasta_file='species.fa',
@@ -117,8 +117,7 @@ wrapper.save(path='./path/to/wrapper', save_model=True)
 - pyBigWig
 - kipoi
 - kipoiseq
-- keras
-- tensorflow
+- tensorflow 2
               
  We also strongly advice to install [genomelake](https://github.com/kundajelab/genomelake) for fast reading in fasta file. 
  
@@ -136,6 +135,7 @@ If you are using a virtualenv, you may want to avoid using sudo:
 ```sh
 pip install keras_dna
 ```
+
 
 - **Alternatively: install Keras_dna from the GitHub source:**
 
