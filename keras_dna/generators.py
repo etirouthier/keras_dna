@@ -174,7 +174,7 @@ class MultiGenerator(object):
                         if self.output_shape:
                             targets = targets.reshape((targets.shape[0],) +\
                                                       self.output_shape[1:])
-                        yield inputs, targets
+                    yield inputs, targets
             
         return generator_function(self.dataset_list, self.batch_size)
 

@@ -12,16 +12,16 @@ import pyBigWig
 import numpy as np
 
 
-from keras.utils.io_utils import H5Dict
-from keras.models import load_model, clone_model
-from keras.models import Model
-from keras import Input
+from tensorflow.keras.models import load_model, clone_model
+from tensorflow.keras.models import Model
+from tensorflow.keras import Input
 
 
 from .generators import Generator, MultiGenerator, PredictionGenerator
 from .sequence import SeqIntervalDl, StringSeqIntervalDl
 from .evaluation import Auc, Correlate
 from .layers import Project1D
+from .keras_utils import H5Dict
     
 
 class ModelWrapper(object):
@@ -117,8 +117,12 @@ class ModelWrapper(object):
 
         h5dict = H5Dict(path)
         self._update_hdf5(h5dict, self.generator_train.command_dict, 'train')
-        self._update_hdf5(h5dict, self.generator_val.command_dict, 'val')
-
+        
+        try:
+            self._update_hdf5(h5dict, self.generator_val.command_dict, 'val')
+        except AttributeError:
+            pass
+        
     def evaluate(self,
                  incl_chromosomes=None,
                  generator_eval=None,
@@ -566,11 +570,17 @@ def load_wrapper(path,
 
     arguments_train = json.loads(h5dict['arguments_train'].decode('utf8'))
     generator_train = load_generator(arguments_train)
+    
+    try:
+        arguments_val = json.loads(h5dict['arguments_val'].decode('utf8'))
+        generator_val = load_generator(arguments_val)
+    except AttributeError:
+        pass
+    try:
+        wrapped_model = ModelWrapper(model, generator_train, generator_val)
+    except UnboundLocalError:
+        wrapped_model = ModelWrapper(model, generator_train)
 
-    arguments_val = json.loads(h5dict['arguments_val'].decode('utf8'))
-    generator_val = load_generator(arguments_val)
-
-    wrapped_model = ModelWrapper(model, generator_train, generator_val) 
     h5dict.__exit__()
     return wrapped_model
 

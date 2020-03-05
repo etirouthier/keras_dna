@@ -6,8 +6,8 @@ Created on Wed Dec 11 16:33:49 2019
 @author: routhier
 """
 
-from keras import backend as K
 import tensorflow as tf
+from tensorflow.keras import backend as K
 
 
 class Auc(object):

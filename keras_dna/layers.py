@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-from keras.engine.base_layer import Layer
-from keras.layers import Reshape
+from tensorflow.keras.layers import Reshape, Layer
 
 
 class Project1D(Layer):
