@@ -136,6 +136,8 @@ If you are using a virtualenv, you may want to avoid using sudo:
 pip install keras_dna
 ```
 
+Note that libcurl (and the `curl-config` command) are required for installation. This is typically already installed on many Linux and OSX systems (this is also available easily if using a conda env).
+
 
 - **Alternatively: install Keras_dna from the GitHub source:**
 
