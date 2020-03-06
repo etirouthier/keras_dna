@@ -252,4 +252,31 @@ from keras_dna.model import load_wrapper
 wrapper = load_wrapper(path_to_model)
 ```
 
+To reconstruct the model the data need to be present and organised as they were passed in `Generator`, so it limits the sharability of the model. The function `load_generator_command` return a dictionary with the command needed to recreate both the train and val generator.
+
+```python
+from keras_dna.model import load_generator_command
+
+dict = load_generator_command(path_to_model)
+
+### Know the type of generator:
+### either a Generator instance
+>>> dict['type']
+'Generator'
+
+### or a MultiGenerator with SeqIntervalDl dataset
+>>> dict['type']
+'MultiSeq'
+
+### or a MultiGenerator with StringSeqIntervalDl dataset
+>>> dict['type']
+'MultiStringSeq'
+
+### Access the command dictionary (or list in the case of a MultiGenerator, one per dataset)
+>>> dict['arguments']
+{'fasta_file' : 'species.fa,
+ 'batch_size' : 64,
+ ...}
+```
+
 ------------------------
