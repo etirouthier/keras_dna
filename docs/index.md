@@ -1,6 +1,6 @@
 # Keras_dna: simplifying deep genomics
 
-![Keras_dna logo](/docs/favicon.ico)
+![Keras_dna logo](favicon.ico)
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/etirouthier/keras_dna/LICENSE)
 
