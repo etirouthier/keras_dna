@@ -276,7 +276,7 @@ dict = load_generator_command(path_to_model)
 
 ### Access the command dictionary (or list in the case of a MultiGenerator, one per dataset)
 >>> dict['arguments']
-{'fasta_file' : 'species.fa,
+{'fasta_file' : 'species.fa',
  'batch_size' : 64,
  ...}
 ```
