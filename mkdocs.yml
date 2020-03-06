@@ -15,4 +15,4 @@ nav:
                 Normalization: normalization.md
                 Weights: weights.md
 theme: readthedocs
-site_favicon: favicon.ico
+site_favicon: docs/favicon.ico
