@@ -6,11 +6,11 @@
 
 ## Description:
 
-Keras_dna is an API that help quick experimentation for applying deep learning to genomics. It enables to quickly feed a keras model (tensorflow) with genomic data without the need of laborious file convertion and storing tremendous amount of converted data. It reads the most commun bioinformatics file types and create a generator adapted to a keras model.
+Keras_dna is an API that helps quick experimentation in applying deep learning to genomics. It enables to quickly feed a keras model (tensorflow) with genomic data without the need of laborious file convertion and storing tremendous amount of converted data. It reads the most commun bioinformatics file types and create a generator adapted to a keras model.
 
 Use Keras_dna if you need a library that:
 
-- Allows fast usage of standard bioinformatics data to feed a keras model.
+- Allows fast usage of standard bioinformatics data to feed a keras model (nowaday standard for tensorflow).
 - Is able to adapt to the needed format of data.
 - Facilitates the standard evaluation of a model with genomics data (correlation, AUPRC, AUROC)
 
@@ -40,7 +40,7 @@ The core data structures of Keras_dna are a __generator__, to feed the keras mod
 
 `Generator` is able to create batch of DNA sequence corresponding to the desired annotation.
 
-First example, a `Generator` that will return the DNA sequence underlying a given sparse annotation (here binding site). The DNA sequence is fournished with a fasta file and the position of annotation is fournished with a gff file (could have been a bed), the DNA is one-hot-encoded, the annotations that we want to target need to be passed in a list.
+First example, a `Generator` that will return DNA subsequences corresponding to a given function (here binding site) as positive class and subsequences far away as negative class. The DNA sequence is fournished through a fasta file and the annotation is fournished with a gff file (could have been a bed), the DNA is one-hot-encoded, the function names that we want to target need to be passed in a list.
 
 ```python
 from keras_dna import Generator
@@ -51,7 +51,7 @@ generator = Generator(batch_size=64,
                       annotation_list=['binding site'])
 ```
 
-Second example, a `Generator` for continuous annotation, this time the file is a bigWig file (it can also be passed with a wig or a bedGraph, but then a file containing the size of chromosome need to be passed as size), the window need to be passed (as well as the batch size and the fasta file). This generator will generate all the window of length 100 in the DNA and will label it with the coverage at the center nucleotid.
+Second example, a `Generator` for continuous annotation, this time the file is a bigWig file (it can also be passed with a wig or a bedGraph, but then a file containing the size of chromosome need to be passed as size), the length of desired window need to be passed. This generator will generate all the window of length 100 in the DNA and will label it with the coverage at the center nucleotid.
 
 ```python
 from keras_dna import Generator
@@ -61,10 +61,10 @@ generator = Generator(batch_size=64,
                       annotation_files=['annotation.bw'],
                       window=100)
 ```
-`Generator` owns a lot of keywords to adapt the format of the data to the keras model and to adapt to our task (predicting several annotation at the same time in different cellular type, adding a secondary input, adding a secondary target...)
+`Generator` owns a lot of keywords to adapt the format of the data both to the keras model and to our task (predicting the sequence function in different cellular type, choosing between several different functions, adding a secondary input, adding a secondary target...)
 
 
-`ModelWrapper` is a class designed to unify a keras model to its generator so that to simplify further utilisations of the model (prediction, evaluation). 
+`ModelWrapper` is a class designed to unify a keras model to its generator  in order to simplify further usage of the model (prediction, evaluation). 
 
 ```python
 from keras_dna import ModelWrapper, Generator
