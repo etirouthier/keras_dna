@@ -2,9 +2,9 @@
 
 ## AUROC - AUPRC
 
-A standard evaluation of sparse data model is to calculate the AUROC or the AUPRC. `Generator` anables to easily evaluating this quantity. First, if the model contains several cell type and annotation, they will be treated one by one to evaluate the model.
+A standard evaluation of classification model is to calculate the AUROC or the AUPRC. `Generator` enables to easily evaluating this quantity. First, if the model is designed to predict several function on several cell types, they will be treated one by one to evaluate the model.
 
-The standard definition of positive example is to consider one sequence as positive per annotation instance and as negative example all the sequence of the desired length without any intersection with the positive sequence. The other sequences being a mix of the positive sequence and the negative sequence receive no labels and are not taken into account in the calculation
+The standard definition of positive example is to consider one sequence as positive per function instance and as negative example all the sequences of the desired length without any intersection with the positive sequences. Other sequences,as they are a mix of positive sequences and the sequences receive no labels and are not taken into account in the calculation.
 
 If the keyword `data_augmentation` is set to True then the positive examples will be all the sequences that contains a whole example of an annotation. The negative examples are the sequences without any intersection with a positive example. (default behaviour)
 
@@ -38,7 +38,7 @@ wrap.get_auc(incl_chromosomes=['chr6'],
              curve='PR')
 ```
 
-It returns a list of dictionary with the cell type index, the name of the annotation and the value of the AUC. The cell type index is one of the corresponding files in the annotation_files.
+It returns a list of dictionary with the cell type index, the name of the annotation and the value of the AUC. The cell type index is the same as in the list pass through `annotation_files`.
 
 We can also evaluate the AUC on another species:
 
@@ -66,7 +66,7 @@ wrap.get_auc(incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4'],
              annotation_files=['ann2.gff'])
 ```
 
-For `MultiGenerator` this procedure need to be followed to specify the species on which one wants to evaluate the AUC.
+For `MultiGenerator` this procedure needs to be followed to specify the species on which one wants to evaluate the AUC.
 
 The number of file in annotation_list should be the same in both the generator and the `.get_auc()` method. If one wants to evaluate on less file one should complete the list with zeros and place the files at the position corresponding to there cell type.
 
