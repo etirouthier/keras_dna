@@ -2,12 +2,12 @@
 
 ## Introduction
 
-Dataset are used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one need to use them directly and this section shows how to use them.
+Dataset are used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one need to use them directly and this section shows how.
 
-There is to class of dataset : 
+There are two classes of dataset : 
 
 - `SeqIntervalDl`: used to generate batch of one-hot-encoded DNA sequence.
-- `StringSeqIntervalDl`: used to generate batch of string DNA sequence.
+- `StringSeqIntervalDl`: used to generate batch of DNA sequence as string.
 
 ## SeqIntervalDl
 
@@ -29,7 +29,7 @@ dataset = SeqIntervalDl(fasta_file='species.fa',
                         window=299)
 ```
 
-The DNA sequence is one-hot-encoded and we can adapt the shape of this sequence using `dummy_axis` and `alphabet_axis` (see [Generator](generators.md)).
+The DNA sequence is one-hot-encoded and the shape is adaptable by using `dummy_axis` and `alphabet_axis` (see [Generator](generators.md)).
 
 ```python
 from keras_dna import SeqIntervalDl
@@ -71,7 +71,7 @@ dataset = SeqIntervalDl(fasta_file='species.fa',
                         alphabet='AGCT')
 ```
 
-**Warning :** the default alphabet make the use of [genomelake](https://github.com/kundajelab/genomelake) possible leading to an increase of performance.
+**Warning :** the default alphabet use [genomelake](https://github.com/kundajelab/genomelake) leading to an increase of performance.
 
 The type of the np.ndarray created can be chosen using the keyword `dtype`.
 
