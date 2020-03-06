@@ -3,9 +3,9 @@
 
 ## Introduction
 
-`ModelWrapper` is a class designed to unify the keras model to its corresponding keras_dna generator. It is especially useful to train, evaluate the model or predict with the model. The basics arguments are:
+`ModelWrapper` is a class designed to attach the keras model to its corresponding keras_dna generator. It is especially useful to train, evaluate the model or make prediction with the model. The basics arguments are:
 
-- `model`: compiled keras model
+- `model`: a compiled keras model
 - `generator_train`: a keras_dna generator restricted to the chromosomes one wants to train on.
 - `generator_val`: a keras_dna generator restricted to the chromosomes one wants to validate on. It must return the same shape as `generator_train`.
 - `validation_chr`: if `generator_val`is absolutely identical to `generator_train` except for the chromosomes included then just pass the validation chromosome with this keyword (no need to pass a `generator_val`).
@@ -15,7 +15,7 @@ Creating a `ModelWrapper`:
 
 ```python
 from keras_dna import Generator, ModelWrapper
-from keras import Sequential
+from tensorflow.keras import Sequential
 
 model = Sequential()
 model.compile(loss='mse', optimizer='adam')
@@ -34,11 +34,11 @@ wrap = ModelWrapper(model=model,
                     weights_val=False)
 ```
 
-Creating a `ModelWrapper` for a `MultiGenerator`, the chromosome name may not be the same for every species included so to create a model wrapper with a `MultiGenerator` one needs to create the generator_val before:
+Creating a `ModelWrapper` for a `MultiGenerator`, chromosome names may not be the same for every species involved in the generator so to create a model wrapper with a `MultiGenerator` one needs to create the generator_val before:
 
 ```python
 from keras_dna import Generator, MultiGenerator, SeqIntervalDl
-from keras import Sequential
+from tensorflow.keras import Sequential
 
 model = Sequential()
 model.compile(loss='mse', optimizer='adam')
@@ -73,7 +73,7 @@ wrap = ModelWrapper(model=model,
 
 ## Training
 
-Once the model wrapper is designed we can easily train the model with `.train()`, the only mandatory keyword is `epochs` to specify the number of epochs. One can also pass `steps_per_epoch` and `validation_steps` to specify but also pass all the available option accepted by the method `.fit_generator()` of a keras model.
+Once the model wrapper is created one can easily train the model with `.train()`, the only mandatory keyword is `epochs` to specify the number of epochs. One can also pass `steps_per_epoch` and `validation_steps` to specify but also pass all the available option accepted by the method `.fit_generator()` of a keras model.
 
 ```python
 ...
@@ -84,7 +84,7 @@ wrap = ModelWrapper(model=model,
 wrap.train(epochs=10)
 
 ### Adding keras options
-from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 
 checkpointer = ModelCheckpoint(filepath=path_to_output_file,
                                    monitor='val_loss',
@@ -109,7 +109,7 @@ wrap.train(steps_per_epoch=500,
 
 ## Evaluating
 
-To evaluate a generator on the desired chromosomes use `.evaluate()`. For a `Generator` one needs to specify the chromosomes to evaluate on with the keyword `incl_chromosomes`. For a `MultiGenerator` one needs to create a full generator and pass it with `generator_eval`. One can pass the keyword corresponding to `.evaluate_generator()` for a keras model.
+To evaluate a generator on the desired chromosomes use `.evaluate()`. For a `Generator` one needs to specify the chromosomes  with the keyword `incl_chromosomes`. For a `MultiGenerator` one needs to create a full generator and pass it with `generator_eval`. One can also pass keywords of the method `.evaluate_generator()` of a keras model.
 
 
 Evaluation of a `Generator`:
@@ -202,13 +202,13 @@ wrap.predict(incl_chromosomes=['chr1', 'chr2'],
              export_to_path='path/to/species2')
 ```
 
-**Note :** prediction are made on all the available data in the specified chromosome even for sparse data, it will in this case display the probability of a nucleotid to belong to the target annotation.
+**Note :** prediction are made on all the available data in the specified chromosome even for sparse data, in this case it displays the probability of a nucleotid to have a given function.
 
 ## Saving
 
-To save a `ModelWrapper` use the method `.save()` with the path where it should be saved. It will save it in a hdf5 file, the keras model is saved as usual and a dictionary describing how to reconstruct the `Generator` is saved.
+To save a `ModelWrapper` use the method `.save()` with the path as argument. It creates a hdf5 file, the keras model is saved as usual and a dictionary describing how to reconstruct the `Generator` is saved.
 
-Be aware of one subtleties, an usual keras callbacks is `ModelCheckpoint` that anables to save the best model obtained during the training, but the model continues to train after reaching its best. If after the training one saves the model using `.save()` the best model will be overwritten by the last obtained. To avoid this fact set the keyword `save_model` to False (it is the default behaviour).
+Be aware of one subtleties, an usual keras callbacks is `ModelCheckpoint` that anables to save the best model obtained during the training, but the model continues to train after reaching its best. By saving the model after the training with the method `.save()` the best model will be overwritten by the last obtained. To avoid this fact set the keyword `save_model` to False (default behaviour).
 
 ```python
 ...
