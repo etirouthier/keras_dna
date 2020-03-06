@@ -1,0 +1,9 @@
+# readthtdocs.yml
+# ReadtheDocs Docs configuration file
+
+# Required
+version: 2
+
+# build documentation with Mkdocs
+mkdocs:
+  configuration: mkdocs.yml
