@@ -2,11 +2,11 @@
 
 ## Introduction
 
-`MultiGenerator` is a class useful to train a model on several species at the same time or on both the positive and negative strand of the data. It uses several datasets as seen previously ([Dataset](dataset.md)) to generate batches of data that are a mix of the data coming from every dataset.
+`MultiGenerator` is a class useful to train a model on several species at the same time or on both the positive and negative strand of the data. It uses several datasets ([Dataset](dataset.md)) to generate batches of data that are a mix of the data coming from every dataset.
 
 ## Creating an instance
 
-To create an instance of a `MutliGenerator` one need to create all the dataset that will be used and to ensure that the shape of the inputs and the labels are the same in all those dataset. The mandatory arguments are `batch_size` and `dataset_list`.
+To create an instance of `MutliGenerator` one needs firstly to create the datasets involved and to ensure that the shape of the inputs and the labels are the same in all those datasets. The mandatory arguments are `batch_size` and `dataset_list`.
 
 ```python
 from keras_dna import SeqIntervalDl, MultiGenerator
@@ -32,7 +32,7 @@ Use the keyword `output_shape` to readapt the labels shape to your need (same pr
 
 ## Changing the number of instance per dataset
 
-If one need to control the number of instance that the generator will return for every dataset, one can use the keyword `inst_per_dataset`. A list of integer representing the number of instance for every dataset (same order) need to be passed. The default behaviour is to generate all the data available (which can lead to a bias toward one species).
+If one needs to control the number of instance that the generator will return for every dataset, one can use the keyword `inst_per_dataset`. A list of the number of instance for every dataset need to be passed, the order in the number list must be the same as in the dataset list. The default behaviour is to generate all the data available (which can leads to a bias toward one species).
 
 ```python
 from keras_dna import SeqIntervalDl, MultiGenerator
