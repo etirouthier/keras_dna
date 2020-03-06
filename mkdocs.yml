@@ -2,15 +2,15 @@ site_name: Keras_dna Documentation
 nav:
         - Home: index.md
         - Generator:
-                Generator: generators.md
                 Classification:  sparse.md
+                Generator: generators.md
                 Regression: continuous.md
         - MultiGenerator:
                 Dataset: dataset.md
                 MultiGenerator: multigenerator.md
         - ModelWrapper:
-                Getting started: modelwrapper.md
                 Advanced use: modelwrapperadvanced.md
+                Getting started: modelwrapper.md
         - Other:
                 Normalization: normalization.md
                 Weights: weights.md
