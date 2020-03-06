@@ -2,7 +2,7 @@
 
 ## Introduction
 
-As seen in [Generator](./generators.md) and in [MultiGenerator](./multigenerator.md) there is some normalization that could be applied on continuous dataset.
+As seen in [Generator](./generators.md) and in [MultiGenerator](./multigenerator.md) some normalizations could be applied for regression problem.
 
 ```python
 from keras_dna import Generator
@@ -16,7 +16,7 @@ generator = Generator(batch_size=64,
 
 ## Single normalization
 
-Follow the previous example to apply only one normalization to the labels of the model. The available normalization type are :
+Follow the previous example to apply only one normalization to the labels. The available normalizations are :
 
 - `'zscore'`: substracting the mean of the mean of the values and dividing by the standard deviation.
 - `'max'`: dividing by the maximum of the values
@@ -24,11 +24,11 @@ Follow the previous example to apply only one normalization to the labels of the
 - `'logtransform'`: taking the log of the values : `np.log(values + 1)`
 - `'min_max'`: substracting `min` and dividing by `(max - min)`, the values are between 0 and 1 after.
 
-The statistics are taken on the whole genome (only the chromosomes named with a number) for consistency between all the generator created with a file.
+The statistics are taken on the whole genome for consistency between all the generator created with a given file. Note that only chromosomes named with a number are taken into account to avoid taking into account variant.
 
 ## Applying two successive normalizations
 
-It is usually useful to apply two successive normalization, in particular to trim the sequence before applying another available normalization. `Generator` owns the possibility to apply up to two successive normalizations. In this case the available normalization modes are the same and statistics (min, max, std) are taken on a subsample of the whole genome.
+It is usually useful to apply two successive normalizations, in particular trimming the sequence before applying another available normalization. `Generator` owns the possibility to apply up to two successive normalizations. In this case the available normalization modes are the same and statistics (min, max, std) are taken on a subsample of the whole genome.
 
 ```python
 from keras_dna import Generator
