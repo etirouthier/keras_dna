@@ -2,9 +2,9 @@ site_name: Keras_genes Documentation
 nav:
         - Home: index.md
         - Generator:
+                Generator: generators.md
                 Classification:  sparse.md
                 Regression: continuous.md
-                Generator: generators.md
         - MultiGenerator:
                 Dataset: dataset.md
                 MultiGenerator: multigenerator.md
