@@ -61,7 +61,7 @@ generator = Generator(batch_size=64,
                       ignore_targets=True)
 ```
 
-## Using string DNA sequence
+## DNA sequence in string format
 
 Models inspired from the natural language processing domain use DNA sequence in string format. To return the DNA sequence in string format, set `one-hot-encoding` to false in `Generator`. The keyword `force_upper` force the letter to be uppercase.
 
