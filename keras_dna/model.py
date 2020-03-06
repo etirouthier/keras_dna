@@ -584,6 +584,23 @@ def load_wrapper(path,
     h5dict.__exit__()
     return wrapped_model
 
+def load_generator_command(path):
+    """
+    Function used to load the generators input dict of a stored ModelWrapper
+    """
+    h5dict = H5Dict(path)
+
+    arguments_train = json.loads(h5dict['arguments_train'].decode('utf8'))
+    
+    try:
+        arguments_val = json.loads(h5dict['arguments_val'].decode('utf8'))
+        h5dict.__exit__()
+        return arguments_train, arguments_val
+
+    except AttributeError:
+        h5dict.__exit__()
+        return arguments_train
+
 def load_generator(arguments):
     if arguments['type'] == 'Multi Seq':
         dataset_list = [SeqIntervalDl(**com_dict) for com_dict in arguments['arguments'][:-1]]
