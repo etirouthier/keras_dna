@@ -9,7 +9,7 @@ nav:
                 Dataset: dataset.md
                 MultiGenerator: multigenerator.md
         - ModelWrapper:
-                Getting started: modelwrapper.md
+                Introduction: modelwrapper.md
                 Advanced use: modelwrapperadvanced.md
         - Other:
                 Normalization: normalization.md
