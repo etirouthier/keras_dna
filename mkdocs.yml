@@ -1,4 +1,4 @@
-site_name: Keras_genes Documentation
+site_name: Keras_dna Documentation
 nav:
         - Home: index.md
         - Generator:
