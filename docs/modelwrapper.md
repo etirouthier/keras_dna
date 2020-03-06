@@ -254,7 +254,7 @@ wrapper = load_wrapper(path_to_model)
 
 To reconstruct the model the data need to be present and organised as they were passed in `Generator`, so it limits the sharability of the model. The function `load_generator_command` return a dictionary with the command needed to recreate both the train and val generator. The keras model need to be loaded appart.
 
-Note: it can be used to retrained a network on new data, just change the inputs files.
+Note: it can be used to retrained a model on new data, just change the inputs files.
 
 ```python
 from keras_dna.model import load_generator_command
