@@ -89,6 +89,22 @@ generator = Generator(batch_size=64,
 'AATCTGG ... GCTA'
 ```
 
+## Changing the alphabet
+
+The default behaviour of `Generator` is to yield DNA sequence one-hot-encoded with the alphabet 'ACGT' (A=1, C=2,...). This alphabet can be changed with the keyword alphabet.
+
+```python
+from keras_dna import Generator
+
+generator = Generator(batch_size=64,
+                      fasta_file='species.fa',
+                      annotation_files='ann.bw',
+                      window=299,
+                      one-hot-encoding=True,
+                      alphabet='ATGC')
+```
+
+
 ## Adding weights to the training
 
 To handle highly unbalanced distributions such as in genomics, the need of adding weights to the training often appears. The keyword `weighting_mode` and `bins` will be covered in details in [Weights](weights.md).
