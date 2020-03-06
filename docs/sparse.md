@@ -1,9 +1,9 @@
-# Generating sparse data
+# Classification
 
 
 ## Introduction
 
-`Generator` can be used to feed a keras model with the subsequence of DNA underlying all the exemple of an annotation in the genome. To do so the position of annotations need to be passed in a bed or gff file, with the name of the target annotation in a list. `Generator` will detect suffixes .bed, .gff, .gtf, .gff3 and select the positions of the desired annotation.
+`Generator` can be used to feed a keras model with the subsequences of DNA owning a given function. To do so the annotation of the genome needs to be passed in a bed or gff file, the names of the target annotation are given in a list. `Generator` will detect suffixes .bed, .gff, .gtf, .gff3 and select the positions of the desired annotations.
 
 ```python
 from keras_dna import Generator
@@ -14,14 +14,14 @@ generator = Generator(batch_size=64,
                       annotation_list=['binding site'])
 ```
 
-The standard behaviour will be to generate all the DNA sequences underlying the desired annotation one-hot-encoded and with a length corresponding to the maximal length encountered (one window per annotation instance). It will also generate the same amounts of DNA sequences away from annotation regions. 
+The default behaviour will be to generate the DNA sequences owning the desired function one-hot-encoded and with a length corresponding to the maximal length encountered (one window per annotation instance). It will also generate the same amounts of DNA sequences away from annotation regions as negative example. 
 
 The one-hot-encoded DNA batch will have the shape `(batch_size, max length, 4)`. The labels will be 0 or 1 with the shape `(batch_size, nb anotation files, len(annotation_list))`, i.e here `(64, 1, 1)`.
 
 
 ## Model for several cell types and annotations
 
-`Generator` can be used to feed a keras model aimed at predicting several different annotations in different cell types. In this case the input files are the fasta file corresponding to the DNA sequence of the species and a gff file for every cell type. The gff format is needed to provide the position of several annotation in one file, bed format is not adapted to do so.
+`Generator` can be used to classify between different function in different cell types. In the DNA sequence of the species is given through a fasta file and the positions of annotations are given through one gff file for every cell type. The gff format is needed to provide the position of several annotation in one file, bed format is not adapted to do so.
 
 ```python
 from keras_dna import Generator
@@ -37,7 +37,7 @@ The one-hot-encoded DNA batch will have the shape `(batch_size, max length, 4)`.
 
 ## Changing input length
 
-To length of the inputs can be change with the keyword `seq_len`.
+To length of inputs can be change with the keyword `seq_len`.
 
 ```python
 from keras_dna import Generator
@@ -95,7 +95,7 @@ generator = Generator(batch_size=64,
  
 ## Data Augmentation
  
-Usually, there is far more areas on the genome that are not functionnal (or with an unknown fonctionnality). This fact leads to unbalanced dataset with fewer positive exemple if we keep the natural distribution. To assess this fact one can multiply the positive exemple with the data augmentation procedure, that is to say that all the window that contains the annotation are labeled as positive. This functionnality is available with the keyword `data_augmentation`:
+Usually, there is far more areas on the genome that are not functionnal (or with an unknown fonctionnality). This fact leads to unbalanced dataset with fewer positive exemples if we keep the natural distribution. To assess this fact one can multiply the positive exemples with a data augmentation procedure : all the windows containing a functional part are labeled as positive to the function (several window per annotation instance). This functionnality is available through the keyword `data_augmentation`:
  
 ```python
 from keras_dna import Generator
@@ -131,7 +131,7 @@ The labels shape will be `(batch_size, seq_len, nb cell type, nb annotation)`
 
 ## Positive definition
 
-In the case of a model predicting several annotations, the same window can be labeled by more than one value. One use the keyword `define_positive` to change the definition of a positive label. It can either be a sequence that contains all the annotation or a sequence that just match a part of the annotation (it does not mean that a data_augmentation will be applied).
+In the case of a model predicting several annotations, the same window can be positively labeled for more than one function. One use the keyword `define_positive` to change the definition of a positive label. It can either be a sequence that contains all an annotation instance or a sequence that just match a part of an annotation. Note that it does not mean that a data_augmentation will be applied.
 
 ```python
 from keras_dna import Generator
@@ -153,7 +153,7 @@ generator = Generator(batch_size=64,
 
 ## Negative / Positive ratio
 
-One can change the negative / positive ratio by using the keyword `negative_ratio` which is by default set to 1. A positive example contains at least one annotation, a negative sample if far away from any selected annotation.
+One can change the negative / positive ratio by using the keyword `negative_ratio` which is by default set to 1. A positive example contains at least one annotation, a negative sample if far away from any desired annotations.
 
 ```python
 from keras_dna import Generator
@@ -204,7 +204,7 @@ generator = Generator(batch_size=64,
 
 ## Using the strand of the example
 
-If the passed annotation files precise the strand of the example of every annotation then by setting the keyword `use_strand` to True, the `Generator` will reverse complement the example in the backward strand. This may be useful for the model to read the DNA sequence like the cell machinery.
+If the annotation files precise the strand for every annotation then by setting the keyword `use_strand` to True, the `Generator` will reverse complement the example known to be in the backward strand. This may be useful for the model to read the DNA sequence as the cell machinery.
 
 ```python
 from keras_dna import Generator
@@ -216,6 +216,7 @@ generator = Generator(batch_size=64,
                       annotation_list=['gene'],
                       use_strand=True)
 ```
+
 -----------------------------------
   
                       
