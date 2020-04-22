@@ -5,7 +5,7 @@ HERE = pathlib.Path(__file__).parent
 README = (HERE/"README.md").read_text()
 
 setup(name="keras_dna",
-      version="0.0.3",
+      version="0.0.4",
       description="Build keras generator for genomic application",
       long_description=README,
       long_description_content_type="text/markdown",
@@ -19,7 +19,7 @@ setup(name="keras_dna",
             "Programming Language :: Python :: 3.6"],
       packages=find_packages(),
       include_packages_data=True,
-      install_requires=["tensorflow>=2.1.0",
+      install_requires=["tensorflow>=2.0.0",
                         "numpy",
                         "pandas",
                         "kipoi",
