@@ -13,6 +13,7 @@ import random
 import warnings
 import pyBigWig
 import inspect
+import sys
 
 
 from kipoi.metadata import GenomicRanges
@@ -343,22 +344,46 @@ class SparseDataset(object):
 
     def _negative_class(self):
         neg_df = pd.DataFrame()
-        number_of_pos = list()
     
         for chrom in self.ann_df.chrom.unique():
-            neg_starts = np.arange(1,
-                                   np.max(self.ann_df[self.ann_df.chrom == chrom].stop.values) + 1)
             df_ = self.ann_df[self.ann_df.chrom == chrom]
             pos_starts, pos_stops = self._calculate_interval(df_)
-            number_of_pos.append(np.sum(pos_stops - pos_starts))
-    
+            number_of_pos = np.sum(pos_stops - pos_starts)
+
             pos_starts = pos_starts - self.length
-            deletion = np.concatenate([np.arange(pos_starts[i], pos_stops[i])\
-                                       for i in range(len(pos_starts))],
-                                      axis=0)
-            deletion = deletion[deletion >= 0]
-            neg_starts = np.delete(neg_starts, deletion)
-    
+            list_interval = np.where((pos_starts[1:] - pos_stops[:-1]) > 0)[0]
+
+            if self.negative_ratio == 'all':
+                neg_starts = np.concatenate([np.arange(pos_stops[interval_idx],
+                                                       pos_starts[interval_idx + 1])\
+                                             for interval_idx in list_interval],
+                                            0)
+
+            elif isinstance(self.negative_ratio, int):
+                proba = np.array([pos_starts[i + 1] - pos_stops[i] for i in list_interval])
+                proba = proba / np.sum(proba)
+                
+                if self.data_augmentation:
+                    number_of_pos *= self.negative_ratio
+                else:
+                    number_of_pos = len(self.ann_df[self.ann_df.chrom == chrom])
+                    number_of_pos *= self.negative_ratio
+                
+                _, nb_per_interval = np.unique(np.random.choice(list_interval,
+                                                                number_of_pos,
+                                                                p=proba),
+                                               return_counts=True)
+                neg_starts = np.concatenate([np.random.choice(np.arange(pos_stops[interval_idx],
+                                                                        pos_starts[interval_idx + 1]),
+                                                              nb_inter,
+                                                              replace=False) for interval_idx,\
+                                                                                 nb_inter in\
+                                                                                 zip(list_interval,
+                                                                                     nb_per_interval)],
+                                            0)
+            else:
+                raise NameError('negative_ratio should be "all" or an integer')
+
             neg_df_ = pd.DataFrame()
             neg_df_['start'] = neg_starts
             neg_df_['stop'] = neg_starts + self.length
@@ -375,42 +400,17 @@ class SparseDataset(object):
         nb_types = len(self.ann_df.type.unique())
         nb_labels = len(self.ann_df.label.unique())
         
-        if self.negative_ratio == 'all':
-            if self.seq2seq:
-                labels = np.zeros((len(neg_df),
-                                   self.length,
-                                   nb_types,
-                                   nb_labels))
-            else:
-                labels = np.zeros((len(neg_df),
-                                   nb_types,
-                                   nb_labels))
-            
-            return neg_df, labels
-        
-        elif isinstance(self.negative_ratio, int):
-            if self.data_augmentation:
-                indexes = np.random.choice(np.arange(len(neg_df)),
-                                 sum(number_of_pos) * self.negative_ratio,
-                                 replace=False)
-            else:
-                indexes = np.random.choice(np.arange(len(neg_df)),
-                                 len(self.ann_df) * self.negative_ratio,
-                                 replace=False)
-
-            if self.seq2seq:
-                labels = np.zeros((len(indexes),
-                                   self.length,
-                                   nb_types,
-                                   nb_labels))
-            else:
-                labels = np.zeros((len(indexes),
-                                   nb_types,
-                                   nb_labels))
-            
-            return neg_df.iloc[indexes], labels
+        if self.seq2seq:
+            labels = np.zeros((len(neg_df),
+                                self.length,
+                                nb_types,
+                                nb_labels))
         else:
-            raise NameError('negative_ratio should be "all" or an integer')
+            labels = np.zeros((len(neg_df),
+                                nb_types,
+                                nb_labels))
+            
+        return neg_df, labels
 
     def _get_dataframe(self):
         new_df = pd.DataFrame()
