@@ -16,7 +16,7 @@ Use Keras_dna if you need a library that:
 
 Read the documentation at [keras_dna](https://keras-dna.readthedocs.io).
 
-Keras is compatible with: __Python 3.6__.
+Keras_dna is compatible with: __Python 3.6__.
 
 
 ------------------
