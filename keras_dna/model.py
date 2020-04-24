@@ -60,7 +60,7 @@ class ModelWrapper(object):
         self.generator_train = generator_train
 
         if generator_val:
-           self.generator_val = generator_val
+            self.generator_val = generator_val
         elif validation_chr:
             command_dict = deepcopy(self.generator_train.command_dict.as_input())
             command_dict['incl_chromosomes'] = validation_chr
@@ -77,16 +77,24 @@ class ModelWrapper(object):
               **kwargs):
         if not steps_per_epoch:
             steps_per_epoch = len(self.generator_train)
-        if not validation_steps:
-            validation_steps = len(self.generator_val)
-
-        self.model.fit_generator(generator = self.generator_train(),
-                                 steps_per_epoch = steps_per_epoch, 
-                                 epochs = epochs,
-                                 validation_data = self.generator_val(), 
-                                 validation_steps = validation_steps, 
-                                 *args,
-                                 **kwargs)
+            
+        if hasattr(self, 'generator_val'):
+            if not validation_steps:
+                validation_steps = len(self.generator_val)
+            
+            self.model.fit_generator(generator = self.generator_train(),
+                                     steps_per_epoch = steps_per_epoch, 
+                                     epochs = epochs,
+                                     validation_data = self.generator_val(), 
+                                     validation_steps = validation_steps, 
+                                     *args,
+                                     **kwargs)
+        else:
+            self.model.fit_generator(generator = self.generator_train(),
+                                     steps_per_epoch = steps_per_epoch, 
+                                     epochs = epochs,
+                                     *args,
+                                     **kwargs)
 
     def _update_hdf5(self, h5dict, arguments, dataset):
         if isinstance(arguments, list):
