@@ -16,8 +16,6 @@ import inspect
 import sys
 
 
-from kipoi.metadata import GenomicRanges
-from kipoi.data import Dataset
 from kipoiseq.extractors import FastaStringExtractor
 from kipoiseq.transforms import ReorderedOneHot
 from kipoiseq.transforms.functional import fixed_len
@@ -279,8 +277,6 @@ class SparseDataset(object):
                             df,
                             return_all=False,
                             return_strand=False):
-        assert (df.stop.values - df.start.values <= self.length).any(),\
-        'The size of the window need to be greater than every annotation instance'
         if return_strand:
             assert 'strand' in df.columns, \
             'To return the strand the dataframe should have a strand column'
@@ -302,7 +298,8 @@ class SparseDataset(object):
                 strand = df.strand.values
                 strands = np.concatenate([np.repeat(strand[i],
                                                     start[i] - stop[i] + self.length + 1)\
-                                          for i in range(len(strand))])
+                                          for i in range(len(strand))\
+                                          if stop[i] - start[i] <= self.length ])
                 return starts, stops, strands
             else:
                 return starts, stops
@@ -759,7 +756,7 @@ class ContinuousDataset(object):
         return utils.ArgumentsDict(self, kwargs=False)
 
 
-class StringSeqIntervalDl(Dataset):
+class StringSeqIntervalDl(object):
     """
     info:
         docs: >
@@ -820,10 +817,6 @@ class StringSeqIntervalDl(Dataset):
         targets:
             shape: (None,)
             doc: (optional) values corresponding to the annotation file
-        metadata:
-            ranges:
-                type: GenomicRanges
-                doc: Ranges describing inputs.seq
     """
     def __init__(self,
                  annotation_files,
@@ -962,20 +955,14 @@ class StringSeqIntervalDl(Dataset):
         return {
             "inputs": inputs,
             "targets": labels,
-            "metadata": {
-                "ranges": [GenomicRanges(interval.chrom,
-                                         interval.start,
-                                         interval.stop,
-                                         str(idx_)) for interval, idx_ in zip(intervals, idx)] 
             }
-        }
 
     @property
     def command_dict(self):
         return utils.ArgumentsDict(self, called_args='dataset')
 
 
-class SeqIntervalDl(Dataset):
+class SeqIntervalDl(object):
     """
     info:
         doc: >
@@ -1014,10 +1001,6 @@ class SeqIntervalDl(Dataset):
         targets:
             shape: (None,)
             doc: (optional) values given in the annotation file
-        metadata:
-            ranges:
-                type: GenomicRanges
-                doc: Ranges describing inputs.seq
     """
     def __init__(self,
                  alphabet_axis=1,

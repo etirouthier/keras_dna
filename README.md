@@ -115,7 +115,6 @@ wrapper.save(path='./path/to/wrapper', save_model=True)
 - numpy
 - pybedtools
 - pyBigWig
-- kipoi
 - kipoiseq
 - tensorflow 2
               
