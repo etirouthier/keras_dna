@@ -357,8 +357,8 @@ class SparseDataset(object):
                                             0)
 
             elif isinstance(self.negative_ratio, int):
-                proba = np.array([pos_starts[i + 1] - pos_stops[i] for i in list_interval])
-                proba = proba / np.sum(proba)
+                length_inters = np.array([pos_starts[i + 1] - pos_stops[i] for i in list_interval])
+                proba = length_inters / np.sum(length_inters)
                 
                 if self.data_augmentation:
                     number_of_pos *= self.negative_ratio
@@ -366,10 +366,12 @@ class SparseDataset(object):
                     number_of_pos = len(self.ann_df[self.ann_df.chrom == chrom])
                     number_of_pos *= self.negative_ratio
                 
-                _, nb_per_interval = np.unique(np.random.choice(list_interval,
-                                                                number_of_pos,
-                                                                p=proba),
-                                               return_counts=True)
+                interval_chosen = np.random.choice(list_interval,
+                                                   number_of_pos,
+                                                   p=proba)
+                nb_per_interval = [min((interval_chosen == inter).sum(), length_inter)\
+                                   for inter, length_inter in zip(list_interval, length_inters)]
+
                 neg_starts = np.concatenate([np.random.choice(np.arange(pos_stops[interval_idx],
                                                                         pos_starts[interval_idx + 1]),
                                                               nb_inter,
