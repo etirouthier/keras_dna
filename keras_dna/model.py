@@ -98,7 +98,7 @@ class ModelWrapper(object):
 
     def _update_hdf5(self, h5dict, arguments, dataset):
         if isinstance(arguments, list):
-            if 'sequence.SeqIntervalDl' in arguments[0].get_details():
+            if 'keras_dna.sequence.SeqIntervalDl' in arguments[0].get_details():
                 dico = {'type': 'Multi Seq',
                         'arguments':  [com_dict.as_input() for com_dict in arguments]}
                 dico['arguments'][-1].pop('dataset_list', None)
@@ -175,7 +175,7 @@ class ModelWrapper(object):
             annotation files need to be passed as inputs."""
             command_dict = self.generator_train.command_dict[0]
 
-            if 'sequence.SeqIntervalDl' in command_dict.get_details():
+            if 'keras_dna.sequence.SeqIntervalDl' in command_dict.get_details():
                 one_hot_encoding = True
             else:
                 one_hot_encoding = False
@@ -186,10 +186,10 @@ class ModelWrapper(object):
             one_hot_encoding = command_dict.as_input()['one_hot_encoding']
             batch_size = command_dict.as_input()['batch_size']
     
-        assert 'sequence.SparseDataset' in command_dict.get_details(),\
+        assert 'keras_dna.sequence.SparseDataset' in command_dict.get_details(),\
         """Auroc score is only available for sparse dataset"""
 
-        dico = command_dict.get_details()['sequence.SparseDataset']
+        dico = command_dict.get_details()['keras_dna.sequence.SparseDataset']
 
         assert not dico['seq2seq'],\
         """Auroc score is not available for seq2seq model"""
@@ -278,7 +278,7 @@ class ModelWrapper(object):
             annotation file need to be passed as inputs."""
             command_dict = self.generator_train.command_dict[0]
 
-            if 'sequence.SeqIntervalDl' in command_dict.get_details():
+            if 'keras_dna.sequence.SeqIntervalDl' in command_dict.get_details():
                 one_hot_encoding = True
             else:
                 one_hot_encoding = False
@@ -291,10 +291,10 @@ class ModelWrapper(object):
             batch_size = command_dict.as_input()['batch_size']
             output_shape = command_dict.as_input()['output_shape']
 
-        assert 'sequence.ContinuousDataset' in command_dict.get_details(),\
+        assert 'keras_dna.sequence.ContinuousDataset' in command_dict.get_details(),\
         """Correlation score is only available for continuous dataset"""
         
-        dico = command_dict.get_details()['sequence.ContinuousDataset']
+        dico = command_dict.get_details()['keras_dna.sequence.ContinuousDataset']
         if dico['nb_annotation_type']:
             nb_annotation = dico['nb_annotation_type']
         else:
@@ -308,7 +308,7 @@ class ModelWrapper(object):
                 zeros if needed"""
             else:
                 assert len(annotation_files) == 1,\
-                """annotation_files must be a list with the name number of
+                """annotation_files must be a list with the same number of
                 entries as annotation_files in the generator, complete with
                 zeros if needed"""
             indexes = np.where(np.array(annotation_files) != '0')[0]
@@ -323,7 +323,6 @@ class ModelWrapper(object):
             nb_types = len(dico['annotation_files']) // nb_annotation
         else:
             nb_types = 1
-        
 
         eval_dict = deepcopy(command_dict.as_input())
 
@@ -342,21 +341,24 @@ class ModelWrapper(object):
         eval_dict['overlapping'] = False
 
         generator_eval = Generator(**eval_dict)
-        
+
         metrics = [Correlate(idx / nb_annotation,
                              idx % nb_annotation,
                              nb_types,
                              nb_annotation).metric for idx in indexes]
-                          
+
         model = clone_model(self.model)
+        for i, layer in enumerate(self.model.layers):
+            model.layers[i].set_weights(layer.get_weights())
+
         model.compile(optimizer=self.model.optimizer,
                       loss=self.model.loss,
                       metrics=metrics)
 
         evaluations = model.evaluate_generator(generator=generator_eval(),
-                                              steps=len(generator_eval),
-                                              *args,
-                                              **kwargs)
+                                               steps=len(generator_eval),
+                                               *args,
+                                               **kwargs)
         
         return {'correlate_{}_{}'.format(idx / nb_annotation,\
                 idx % nb_annotation) : evaluations[idx] for idx in indexes}
@@ -421,8 +423,8 @@ class ModelWrapper(object):
         else:
             command_dict = self.generator_train.command_dict.get_details()
 
-        if 'sequence.SparseDataset' in command_dict:
-            dico = command_dict['sequence.SparseDataset']
+        if 'keras_dna.sequence.SparseDataset' in command_dict:
+            dico = command_dict['keras_dna.sequence.SparseDataset']
             
             if isinstance(dico['annotation_files'], list):
                 nb_types = len(dico['annotation_files'])
@@ -486,8 +488,8 @@ class ModelWrapper(object):
                                                 .format(str(cell_idx), ann),
                                                 array,
                                                 1)
-        elif 'sequence.ContinuousDataset' in command_dict:
-            dico = command_dict['sequence.ContinuousDataset']
+        elif 'keras_dna.sequence.ContinuousDataset' in command_dict:
+            dico = command_dict['keras_dna.sequence.ContinuousDataset']
             if dico['nb_annotation_type']:
                 nb_annotation = dico['nb_annotation_type']
             else:

@@ -1040,4 +1040,3 @@ class SeqIntervalDl(object):
     @property
     def command_dict(self):
         return utils.ArgumentsDict(self, called_args='seq_dl')
-    

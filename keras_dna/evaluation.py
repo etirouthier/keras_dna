@@ -38,7 +38,7 @@ class Auc(object):
             auc = tf.identity(auc)
         return auc
         
-    
+
 class Correlate(object):
     """
     info:
@@ -68,46 +68,40 @@ class Correlate(object):
         self.idx = idx
         self.nb_types = nb_types
         self.nb_annotation = nb_annotation
-        
+
     def metric(self,
                y_pred,
                y_true):
         y_pred = self._project(y_pred)
         y_true = self._project(y_true)
-        
+
         X = y_true - K.mean(y_true)
         Y = y_pred - K.mean(y_pred)
-        
+
         sigma_XY = K.sum(X*Y)
         sigma_X = K.sqrt(K.sum(X*X))
         sigma_Y = K.sqrt(K.sum(Y*Y))
-        
+
         return sigma_XY/(sigma_X*sigma_Y + K.epsilon())
-    
+
     def _project(self, y):
         if self.nb_types == 1 and self.nb_annotation != 1:
-            try:
+            if len(K.int_shape(y)) == 4:
                 y = y[:, :, self.cell_idx, self.idx]
-            except ValueError:
-                try:
-                    y = y[:, :, self.idx]
-                except ValueError:
-                    pass
+            elif len(K.int_shape(y)) == 3:
+                y = y[:, :, self.idx]
 
         elif self.nb_types != 1 and self.nb_annotation == 1:
-            try:
+            if len(K.int_shape(y)) == 4:
                 y = y[:, :, self.cell_idx, self.idx]
-            except ValueError:
-                try:
-                    y = y[:, :, self.cell_idx]
-                except ValueError:
-                    pass
+            elif len(K.int_shape(y)) == 3:
+                y = y[:, :, self.cell_idx]
+
         elif self.nb_types == 1 and self.nb_annotation == 1:
-            try:
+            if len(K.int_shape(y)) == 4:
                 y = y[:, :, 0, 0]
-            except ValueError:
-                try:
-                    y = y[:, :, 0]
-                except ValueError:
-                    pass
+            elif len(K.int_shape(y)) == 3:
+                y = y[:, :, 0]
+
         return y
+    

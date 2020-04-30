@@ -164,15 +164,14 @@ class Weights(object):
                  weighting_mode=None,
                  bins='auto'):
         self.dataset = dataset
-        
         self.command_dict = dataset.command_dict.get_details()
 
-        if 'sequence.SparseDataset' in self.command_dict:
+        if 'keras_dna.sequence.SparseDataset' in self.command_dict:
             try:
                 df = dataset.dataset.df
             except AttributeError:
                 df = dataset.seq_dl.dataset.df
-            
+
             if weighting_mode == 'balanced':
                 nb_neg = len(df[df.type ==  0])
                 nb_pos = len(df[df.type != 0])
@@ -184,7 +183,7 @@ class Weights(object):
                 self.value_positive = weighting_mode[0]
                 self.value_negative = weighting_mode[1]
 
-        elif 'sequence.ContinuousDataset' in self.command_dict:
+        elif 'keras_dna.sequence.ContinuousDataset' in self.command_dict:
             try:
                 chrom_size = dataset.dataset.chrom_size
                 norm_dico = dataset.dataset.extractor.norm_dico
@@ -193,7 +192,7 @@ class Weights(object):
                 norm_dico = dataset.seq_dl.dataset.extractor.norm_dico
 
             samples = list()
-            annotation_files = self.command_dict['sequence.ContinuousDataset']['annotation_files']
+            annotation_files = self.command_dict['keras_dna.sequence.ContinuousDataset']['annotation_files']
 
             if not isinstance(annotation_files, list):
                 annotation_files = [annotation_files]
@@ -247,13 +246,13 @@ class Weights(object):
         return counts * (values[1] - values[0]), values
 
     def find_weights(self, seq):
-        if 'sequence.SparseDataset' in self.command_dict:
+        if 'keras_dna.sequence.SparseDataset' in self.command_dict:
             outputs = np.zeros((len(seq)))
             outputs += self.value_negative
             outputs[np.where(seq == 1)[0]] = self.value_positive
             return outputs
             
-        elif 'sequence.ContinuousDataset' in self.command_dict:
+        elif 'keras_dna.sequence.ContinuousDataset' in self.command_dict:
             if len(seq.shape) == 4:
                 seq = seq.reshape((seq.shape[0],
                                    seq.shape[1],
@@ -271,50 +270,3 @@ class Weights(object):
                 outputs[:, :, i] = self.weights[i][digitized - 1]
             
             return np.mean(outputs, axis=2)
-            
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-            

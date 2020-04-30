@@ -270,7 +270,7 @@ class PredictionGenerator(object):
             self.incl_chromosomes = [incl_chromosomes]
         self.detailed_dict = command_dict.get_details()
 
-        if 'sequence.SparseDataset' in self.detailed_dict:
+        if 'keras_dna.sequence.SparseDataset' in self.detailed_dict:
             dataset_dict = self.detailed_dict['sequence.SparseDataset']
             self.window = dataset_dict['length']
             self.tg_window = 1
@@ -278,8 +278,8 @@ class PredictionGenerator(object):
             if dataset_dict['seq2seq']:
                 self.tg_window = self.window
 
-        elif 'sequence.ContinuousDataset' in self.detailed_dict:
-            dataset_dict = self.detailed_dict['sequence.ContinuousDataset']
+        elif 'keras_dna.sequence.ContinuousDataset' in self.detailed_dict:
+            dataset_dict = self.detailed_dict['keras_dna.sequence.ContinuousDataset']
             self.window = dataset_dict['window']
 
             if dataset_dict['downsampling']:
@@ -288,7 +288,7 @@ class PredictionGenerator(object):
             else:
                 self.tg_window = dataset_dict['tg_window']
 
-        string_dict = deepcopy(self.detailed_dict['sequence.StringSeqIntervalDl'])
+        string_dict = deepcopy(self.detailed_dict['keras_dna.sequence.StringSeqIntervalDl'])
         string_dict['annotation_files'] = self.chrom_size
         string_dict['use_strand'] = False
         if fasta_file:
@@ -300,8 +300,8 @@ class PredictionGenerator(object):
                            'incl_chromosomes' : self.incl_chromosomes,
                            'tg_window' : self.tg_window}
 
-        if 'sequence.SeqIntervalDl' in self.detailed_dict:
-            self.input_dict = deepcopy(self.detailed_dict['sequence.SeqIntervalDl'])
+        if 'keras_dna.sequence.SeqIntervalDl' in self.detailed_dict:
+            self.input_dict = deepcopy(self.detailed_dict['keras_dna.sequence.SeqIntervalDl'])
             self.input_dict.update(string_dict)
             self.input_dict.update(continuous_dict)
             self.dataset = SeqIntervalDl(**self.input_dict)
@@ -335,13 +335,13 @@ class PredictionGenerator(object):
         and the position of the begining (included) of the prediction and the
         end (excluded) of the prediction on the chromosome.
         """
-        if 'sequence.SeqIntervalDl' in self.detailed_dict:
+        if 'keras_dna.sequence.SeqIntervalDl' in self.detailed_dict:
             df = deepcopy(self.dataset.seq_dl.dataset.df)
         else:
             df = deepcopy(self.dataset.dataset.df)
 
-        if 'sequence.SparseDataset' in self.detailed_dict:
-            dataset_dict = self.detailed_dict['sequence.SparseDataset']
+        if 'keras_dna.sequence.SparseDataset' in self.detailed_dict:
+            dataset_dict = self.detailed_dict['keras_dna.sequence.SparseDataset']
 
             if dataset_dict['seq2seq']:
                 df['start'] = df.start.values - self.window // 2
@@ -351,8 +351,8 @@ class PredictionGenerator(object):
                 df['start'] = df.start.values
                 df['stop'] = df.start.values + (df.last_index.values - df.first_index.values)\
                             + 1
-        elif 'sequence.ContinuousDataset' in self.detailed_dict:
-            dataset_dict = self.detailed_dict['sequence.ContinuousDataset']
+        elif 'keras_dna.sequence.ContinuousDataset' in self.detailed_dict:
+            dataset_dict = self.detailed_dict['keras_dna.sequence.ContinuousDataset']
 
             if dataset_dict['downsampling']:
                 df['start'] = df.start.values - self.window // 2

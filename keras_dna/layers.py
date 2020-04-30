@@ -96,3 +96,4 @@ class Project2D(Layer):
                 except ValueError:
                     tensor = tensor
         return tensor
+    
