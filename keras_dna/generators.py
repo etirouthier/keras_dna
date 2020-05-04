@@ -98,10 +98,10 @@ class Generator(object):
                     if self.output_shape:
                         if isinstance(outputs, np.ndarray):
                             outputs = outputs.reshape((outputs.shape[0],) +\
-                                                      self.output_shape[1:])
+                                                      tuple(self.output_shape)[1:])
                         else:
                             outputs[0] = outputs.reshape((outputs[0].shape[0],) +\
-                                                          self.output_shape[1:])
+                                                          tuple(self.output_shape)[1:])
                     if self.weighting_mode:
                         weights = self.weights.find_weights(outputs)
                         
@@ -168,12 +168,12 @@ class MultiGenerator(object):
 
                     for dataset_index, dataset in enumerate(list_of_dataset): 
                         sub_batch_indexes = batch_indexes[batch_indexes[:, 0] == dataset_index]
-                        data = list_of_dataset[dataset_index][sub_batch_indexes[:, 1].tolist()]
+                        data = dataset[sub_batch_indexes[:, 1].tolist()]
                         inputs = self._append_data(inputs, data['inputs'])
                         targets = self._append_data(targets, data['targets'])
-                        if self.output_shape:
-                            targets = targets.reshape((targets.shape[0],) +\
-                                                      self.output_shape[1:])
+                    if self.output_shape:
+                        targets = targets.reshape((targets.shape[0],) +\
+                                                   tuple(self.output_shape)[1:])
                     yield inputs, targets
             
         return generator_function(self.dataset_list, self.batch_size)
@@ -324,7 +324,7 @@ class PredictionGenerator(object):
                 for num in range(number_of_batches):
                     batch_indexes = indexes[num*batch_size : (num + 1) * batch_size]
                     data = dataset[list(batch_indexes)]
-                    yield data['inputs'], data['metadata']
+                    yield data['inputs']
 
         return generator_function(self.dataset, self.batch_size)
 

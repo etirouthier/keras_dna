@@ -858,12 +858,12 @@ class StringSeqIntervalDl(object):
             self.annotation_files = [self.annotation_files]
 
         if self.annotation_files[0].endswith(('.bed', '.gff', 'gff3', 'gtf')):
-           self.dataset = SparseDataset(annotation_files = self.annotation_files,
-                                        *args,
-                                        **kwargs)
+            self.dataset = SparseDataset(annotation_files = self.annotation_files,
+                                         *args,
+                                         **kwargs)
 
-           if self.dataset.seq_len == 'real':
-               self.pad_seq = True
+            if self.dataset.seq_len == 'real':
+                self.pad_seq = True
 
         elif self.annotation_files[0].endswith(('.wig', '.bw', 'bedGraph', '.sizes')):
             self.dataset = ContinuousDataset(annotation_files = self.annotation_files,

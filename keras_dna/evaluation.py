@@ -64,10 +64,10 @@ class Correlate(object):
                  idx,
                  nb_types,
                  nb_annotation):
-        self.cell_idx = cell_idx
-        self.idx = idx
-        self.nb_types = nb_types
-        self.nb_annotation = nb_annotation
+        self.cell_idx = int(cell_idx)
+        self.idx = int(idx)
+        self.nb_types = int(nb_types)
+        self.nb_annotation = int(nb_annotation)
 
     def metric(self,
                y_pred,

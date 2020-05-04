@@ -216,7 +216,8 @@ class Weights(object):
                 self.weights = [weight / float(len(bins) - 1) for weight, bins\
                                 in zip(self.weights, self.list_bins)]
 
-            if isinstance(weighting_mode, tuple):
+            if isinstance(weighting_mode, tuple) or\
+            isinstance(weighting_mode, list):
                 try:
                     assert isinstance(weighting_mode[0], list)\
                     and isinstance(weighting_mode[1], list),\
@@ -235,8 +236,8 @@ class Weights(object):
                 assert len(weighting_mode[0][0]) == len(weighting_mode[1][0]) + 1,\
                 """len(bins) must be equal to len(weights) + 1 !"""
 
-                self.weights = [weight for weight in weighting_mode[0]]
-                self.list_bins = [bins for bins in weighting_mode[1]]
+                self.weights = [weight for weight in weighting_mode[1]]
+                self.list_bins = [bins for bins in weighting_mode[0]]
 
     def _get_proba(self, array, bins):
         counts, values = np.histogram(array,
@@ -253,12 +254,14 @@ class Weights(object):
             return outputs
             
         elif 'keras_dna.sequence.ContinuousDataset' in self.command_dict:
+            temporal = True
             if len(seq.shape) == 4:
                 seq = seq.reshape((seq.shape[0],
                                    seq.shape[1],
                                    seq.shape[2] * seq.shape[3]))
             elif len(seq.shape) == 2:
-                seq = seq.reshape(seq.shape + (1,))
+                temporal = False
+                seq = np.expand_dims(seq, 1)
 
             outputs = np.zeros(seq.shape)
 
@@ -267,6 +270,9 @@ class Weights(object):
                                         self.list_bins[i],
                                         right=True)
                 digitized[digitized >= len(self.list_bins[i])] = len(self.list_bins[i]) - 1
-                outputs[:, :, i] = self.weights[i][digitized - 1]
-            
-            return np.mean(outputs, axis=2)
+                outputs[:, :, i] = np.asarray(self.weights[i])[digitized - 1]
+
+            if temporal:
+                return np.mean(outputs, axis=2)
+            else:
+                return np.mean(outputs, axis=2)[:, 0]

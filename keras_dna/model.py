@@ -82,19 +82,20 @@ class ModelWrapper(object):
             if not validation_steps:
                 validation_steps = len(self.generator_val)
             
-            self.model.fit_generator(generator = self.generator_train(),
-                                     steps_per_epoch = steps_per_epoch, 
-                                     epochs = epochs,
-                                     validation_data = self.generator_val(), 
-                                     validation_steps = validation_steps, 
-                                     *args,
-                                     **kwargs)
+            history = self.model.fit_generator(generator = self.generator_train(),
+                                               steps_per_epoch = steps_per_epoch, 
+                                               epochs = epochs,
+                                               validation_data = self.generator_val(), 
+                                               validation_steps = validation_steps, 
+                                               *args,
+                                               **kwargs)
         else:
-            self.model.fit_generator(generator = self.generator_train(),
-                                     steps_per_epoch = steps_per_epoch, 
-                                     epochs = epochs,
-                                     *args,
-                                     **kwargs)
+            history = self.model.fit_generator(generator = self.generator_train(),
+                                               steps_per_epoch = steps_per_epoch, 
+                                               epochs = epochs,
+                                               *args,
+                                               **kwargs)
+        return history
 
     def _update_hdf5(self, h5dict, arguments, dataset):
         if isinstance(arguments, list):
@@ -134,6 +135,7 @@ class ModelWrapper(object):
     def evaluate(self,
                  incl_chromosomes=None,
                  generator_eval=None,
+                 weights_eval=False,
                  *args,
                  **kwargs):
         
@@ -145,6 +147,10 @@ class ModelWrapper(object):
             '''incl_chromosomes is needed'''
             command_dict = deepcopy(self.generator_train.command_dict.as_input())
             command_dict['incl_chromosomes'] = incl_chromosomes
+
+            if not weights_eval:
+                command_dict['weighting_mode'] = None
+
             generator_eval = Generator(**command_dict)
 
         evaluations = self.model.evaluate_generator(generator=generator_eval(),
@@ -160,6 +166,7 @@ class ModelWrapper(object):
                 fasta_file=None,
                 annotation_files=None,
                 curve='ROC',
+                weights_eval=False,
                 *args,
                 **kwargs):
         """
@@ -180,7 +187,7 @@ class ModelWrapper(object):
             else:
                 one_hot_encoding = False
             
-            batch_size = self.generator_train.command_dict[-1].as_inputs()['batch_size']
+            batch_size = self.generator_train.command_dict[-1].as_input()['batch_size']
         else:
             command_dict = self.generator_train.command_dict
             one_hot_encoding = command_dict.as_input()['one_hot_encoding']
@@ -236,6 +243,10 @@ class ModelWrapper(object):
                 eval_dict['batch_size'] = batch_size
                 eval_dict['one_hot_encoding'] = one_hot_encoding
                 eval_dict['output_shape'] = (batch_size, 1)
+
+                if not weights_eval:
+                    eval_dict['weighting_mode'] = None
+
                 metric = Auc(curve).metric
 
                 generator_eval = Generator(**eval_dict)
@@ -264,6 +275,7 @@ class ModelWrapper(object):
                         incl_chromosomes,
                         fasta_file=None,
                         annotation_files=None,
+                        weights_eval=False,
                         *args,
                         **kwargs):
         """
@@ -282,9 +294,8 @@ class ModelWrapper(object):
                 one_hot_encoding = True
             else:
                 one_hot_encoding = False
-
-            batch_size = self.generator_train.command_dict[-1].as_inputs()['batch_size']
-            output_shape = self.generator_train.command_dict[-1].as_inputs()['output_shape']
+            batch_size = self.generator_train.command_dict[-1].as_input()['batch_size']
+            output_shape = self.generator_train.command_dict[-1].as_input()['output_shape']
         else:
             command_dict = self.generator_train.command_dict
             one_hot_encoding = command_dict.as_input()['one_hot_encoding']
@@ -340,6 +351,9 @@ class ModelWrapper(object):
         eval_dict['output_shape'] = output_shape
         eval_dict['overlapping'] = False
 
+        if not weights_eval:
+            eval_dict['weighting_mode'] = None
+
         generator_eval = Generator(**eval_dict)
 
         metrics = [Correlate(idx / nb_annotation,
@@ -354,14 +368,13 @@ class ModelWrapper(object):
         model.compile(optimizer=self.model.optimizer,
                       loss=self.model.loss,
                       metrics=metrics)
-
         evaluations = model.evaluate_generator(generator=generator_eval(),
                                                steps=len(generator_eval),
                                                *args,
                                                **kwargs)
         
-        return {'correlate_{}_{}'.format(idx / nb_annotation,\
-                idx % nb_annotation) : evaluations[idx] for idx in indexes}
+        return {'correlate_{}_{}'.format(int(idx / nb_annotation),\
+                idx % nb_annotation) : evaluations[idx + 1] for idx in indexes}
                 
     def predict(self,
                 incl_chromosomes,
@@ -391,6 +404,8 @@ class ModelWrapper(object):
                 it is None.
                 default: None
         """
+        assert chrom_size.endswith('chrom.sizes'), \
+        """The name of the chrome_size file must finish by chrom.sizes"""
         if self.generator_train.__class__.__name__ == 'MultiGenerator':
             command_dict = self.generator_train.command_dict[0]
         else:
@@ -557,7 +572,7 @@ class ModelWrapper(object):
             values = array[int(row.first_index) : int(row.last_index)]
 
             if len(array.shape) == 2:
-                values = values.reshape(array.shape[0] * array.shape[1])
+                values = values.reshape(values.shape[0] * values.shape[1])
 
             values = values.astype(float)
             bw_file.addEntries(row.chrom.values[0],
