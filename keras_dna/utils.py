@@ -158,7 +158,9 @@ def reverse_complement_fa(seq):
 def reverse_complement(seqs, labels, bbi_seqs=None):
     for i in range(len(seqs)):
         seqs[i] = reverse_complement_fa(seqs[i])
-    labels = labels[:, ::-1]
+    
+    if isinstance(labels, np.ndarray):
+        labels = labels[:, ::-1]
     
     if bbi_seqs is not None:
         bbi_seqs = bbi_seqs[:, ::-1]

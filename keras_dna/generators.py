@@ -253,16 +253,21 @@ class PredictionGenerator(object):
             A fasta_file to make prediction on (if None the same as in
             command_dict)
             default=None
+        rc:
+            Weither or not to predict with reverse complemented DNA sequences.
+            default=False
     """
     def __init__(self,
                  batch_size,
                  command_dict,
                  chrom_size,
                  incl_chromosomes,
-                 fasta_file=None):
+                 fasta_file=None,
+                 rc=False):
         self.batch_size = batch_size
         self.command_dict = command_dict
         self.chrom_size = chrom_size
+        self.rc = rc
 
         if isinstance(incl_chromosomes, list):
             self.incl_chromosomes = incl_chromosomes
@@ -291,6 +296,7 @@ class PredictionGenerator(object):
         string_dict = deepcopy(self.detailed_dict['keras_dna.sequence.StringSeqIntervalDl'])
         string_dict['annotation_files'] = self.chrom_size
         string_dict['use_strand'] = False
+        string_dict['rc'] = self.rc
         if fasta_file:
             string_dict['fasta_file'] = fasta_file
 

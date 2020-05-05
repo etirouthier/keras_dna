@@ -10,6 +10,7 @@ import json
 from copy import deepcopy
 import pyBigWig
 import numpy as np
+from functools import partial
 
 
 from tensorflow.keras.models import load_model, clone_model
@@ -19,7 +20,7 @@ from tensorflow.keras import Input
 
 from .generators import Generator, MultiGenerator, PredictionGenerator
 from .sequence import SeqIntervalDl, StringSeqIntervalDl
-from .evaluation import Auc, Correlate
+from .evaluation import Auc, correlate
 from .layers import Project1D
 from .keras_utils import H5Dict
     
@@ -356,10 +357,15 @@ class ModelWrapper(object):
 
         generator_eval = Generator(**eval_dict)
 
-        metrics = [Correlate(idx / nb_annotation,
-                             idx % nb_annotation,
-                             nb_types,
-                             nb_annotation).metric for idx in indexes]
+        metrics = [partial(correlate,
+                           cell_idx=int(idx / nb_annotation),
+                           idx=int(idx % nb_annotation),
+                           nb_types=int(nb_types),
+                           nb_annotation=int(nb_annotation)) for idx in indexes]
+        
+        for idx, metric in zip(indexes, metrics):
+            metric.__name__ = 'correlate_{}_{}'.format(int(idx / nb_annotation),
+                                                       int(idx % nb_annotation))
 
         model = clone_model(self.model)
         for i, layer in enumerate(self.model.layers):
@@ -382,6 +388,7 @@ class ModelWrapper(object):
                 batch_size=32,
                 fasta_file=None,
                 export_to_path=None,
+                rc=False,
                 *args,
                 **kwargs):
         """
@@ -399,6 +406,9 @@ class ModelWrapper(object):
             fasta_file:
                 Name of a fasta file to predict on (if None it will be the
                 file of the generator_train, or the first dataset if MultiGen).
+            rc:
+                Weither or not to predict with reversed complemented DNA sequences.
+                default=False
             export_to_path:
                 Path where the prediction will be exported in bigWig except if
                 it is None.
@@ -418,7 +428,8 @@ class ModelWrapper(object):
                                                   command_dict,
                                                   chrom_size,
                                                   incl_chromosomes,
-                                                  fasta_file)
+                                                  fasta_file,
+                                                  rc)
         prediction = self.model.predict_generator(generator=self.pred_generator(),
                                                   steps=len(self.pred_generator),
                                                   *args,
