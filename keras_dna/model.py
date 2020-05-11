@@ -16,11 +16,12 @@ from functools import partial
 from tensorflow.keras.models import load_model, clone_model
 from tensorflow.keras.models import Model
 from tensorflow.keras import Input
+from tensorflow.keras.metrics import AUC
 
 
 from .generators import Generator, MultiGenerator, PredictionGenerator
 from .sequence import SeqIntervalDl, StringSeqIntervalDl
-from .evaluation import Auc, correlate
+from .evaluation import correlate
 from .layers import Project1D
 from .keras_utils import H5Dict
     
@@ -158,8 +159,7 @@ class ModelWrapper(object):
                                                     steps=len(generator_eval),
                                                     *args,
                                                     **kwargs)
-        return {metric : evaluation for metric, evaluation in\
-                zip(self.model.metric_names, evaluations)}
+        return evaluations
 
     def get_auc(self,
                 incl_chromosomes,
@@ -247,22 +247,19 @@ class ModelWrapper(object):
 
                 if not weights_eval:
                     eval_dict['weighting_mode'] = None
-
-                metric = Auc(curve).metric
+                metric = AUC(curve=curve)
 
                 generator_eval = Generator(**eval_dict)
-                
                 input_shape = next(generator_eval())[0].shape
-                inputs = Input(input_shape)
+
+                inputs = Input(input_shape[1:])
                 x = self.model(inputs)
                 outputs = Project1D(cell_idx, idx,
                                     nb_types, nb_annotation)(x)
-                model = Model([inputs, outputs])
-                
+                model = Model(inputs, outputs)
                 model.compile(optimizer=self.model.optimizer,
                               loss=self.model.loss,
                               metrics=[metric])
-
                 eval_list.append({'cell_idx' : cell_idx,
                                   'annotation' : ann,
                                   'AU' + curve :\

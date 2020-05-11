@@ -276,7 +276,7 @@ class PredictionGenerator(object):
         self.detailed_dict = command_dict.get_details()
 
         if 'keras_dna.sequence.SparseDataset' in self.detailed_dict:
-            dataset_dict = self.detailed_dict['sequence.SparseDataset']
+            dataset_dict = self.detailed_dict['keras_dna.sequence.SparseDataset']
             self.window = dataset_dict['length']
             self.tg_window = 1
 

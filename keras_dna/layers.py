@@ -3,6 +3,7 @@
 
 
 from tensorflow.keras.layers import Reshape, Layer
+import tensorflow.keras.backend as K
 
 
 class Project1D(Layer):
@@ -31,22 +32,21 @@ class Project1D(Layer):
 
     def _project(self, tensor):
         if self.nb_cell_type == 1 and self.nb_annotation_type != 1:
-            try:
+            if len(K.int_shape(tensor)) == 3:
                 tensor = tensor[:, self.cell_idx, self.ann_idx]
-            except ValueError:
+            elif len(K.int_shape(tensor)) == 2:
                 tensor = tensor[:, self.ann_idx]
         
         elif self.nb_cell_type != 1 and self.nb_annotation_type == 1:
-            try:
+            if len(K.int_shape(tensor)) == 3:
                 tensor = tensor[:, self.cell_idx, self.ann_idx]
-            except ValueError:
+            elif len(K.int_shape(tensor)) == 2:
                 tensor = tensor[:, self.cell_idx]
         elif self.nb_cell_type == 1 and self.nb_annotation_type == 1:
-            try:
+            if len(K.int_shape(tensor)) == 3:
                 tensor = tensor[:, 0, 0]
-            except ValueError:
+            elif len(K.int_shape(tensor)) == 2:
                 tensor = tensor[:, 0]
-    
         else:
             tensor = tensor[:, self.cell_idx, self.ann_idx]
         return tensor
