@@ -64,7 +64,7 @@ def bed_to_df(bedfile, annotation_list):
         starts.append(bed.start)
         stops.append(bed.stop)
         labels.append(annotation_list[0])
-        
+
         if hasattr(bed, 'strand'):
             strands.append(bed.strand)
     
