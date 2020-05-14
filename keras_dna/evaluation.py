@@ -65,7 +65,7 @@ def _project(y, cell_idx, idx, nb_types, nb_annotation):
         elif len(K.int_shape(y)) == 3:
             y = y[:, :, cell_idx]
 
-    elif self.nb_types == 1 and self.nb_annotation == 1:
+    elif nb_types == 1 and self.nb_annotation == 1:
         if len(K.int_shape(y)) == 4:
             y = y[:, :, 0, 0]
         elif len(K.int_shape(y)) == 3:
