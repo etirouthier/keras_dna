@@ -172,6 +172,45 @@ class SparseDataset(object):
             if not self.ignore_targets:
                 self.labels = np.append(self.labels, neg_label, axis=0)
 
+    @classmethod
+    def default_dict(cls):
+        return utils.get_default_args(cls.__init__)
+
+    @classmethod
+    def predict_label_shape(cls, **input_dict):
+        command_dict = cls.default_dict()
+        command_dict.update(input_dict)
+
+        if command_dict['ignore_targets']:
+            return None
+
+        assert 'annotation_files' in command_dict,\
+        """To create an instance passing annotation_files is required"""
+
+        assert 'annotation_list' in command_dict,\
+        """To create an instance passing annotation_list is required"""
+
+        if command_dict['seq2seq']:
+            assert not isinstance(command_dict['seq_len'], str),\
+            """The label shape can only anticipated if seq_len is an integer"""
+
+        if isinstance(command_dict['annotation_files'], str):
+            command_dict['annotation_files'] = [command_dict['annotation_files']]
+        
+        if command_dict['seq2seq']:
+            return (command_dict['seq_len'],
+                    len(command_dict['annotation_files']),
+                    len(command_dict['annotation_list']))
+        else:
+            return (len(command_dict['annotation_files']),
+                    len(command_dict['annotation_list']))
+
+    @property
+    def label_shape(self):
+        command_dict = self.command_dict.as_input()
+        command_dict['seq_len'] = self.length
+        return self.predict_label_shape(**command_dict)
+
     def __getitem__(self, idx):
         """Returns (pybedtools.Interval, labels)"""
         if not isinstance(idx, list):
@@ -812,7 +851,44 @@ class ContinuousDataset(object):
             self.df.chrom = self.df.chrom.str.replace("^chr", "")
         if not self.num_chr and not self.df.iloc[0][0].startswith("chr"):
             self.df.chrom = "chr" + self.df.chrom
-    
+
+    @classmethod
+    def default_dict(cls):
+        return utils.get_default_args(cls.__init__)
+
+    @classmethod
+    def predict_label_shape(cls, **input_dict):
+        command_dict = cls.default_dict()
+        command_dict.update(input_dict)
+
+        if command_dict['ignore_targets']:
+            return None
+
+        assert 'annotation_files' in command_dict,\
+        """To create an instance passing annotation_files is required"""
+
+        assert 'window' in command_dict,\
+        """To create an instance passing window is required"""
+
+        if isinstance(command_dict['annotation_files'], str):
+            command_dict['annotation_files'] = [command_dict['annotation_files']]
+        
+        if isinstance(command_dict['nb_annotation_type'], int):
+            assert len(command_dict['annotation_files'])\
+            % command_dict['nb_annotation_type'] == 0,\
+            """nb_annotation_type should devide the number of annotation files"""
+            return (command_dict['tg_window'],
+                    len(command_dict['annotation_files']) // command_dict['nb_annotation_type'],
+                    command_dict['nb_annotation_type'])
+        else:
+            return (command_dict['tg_window'],
+                    len(command_dict['annotation_files']))
+
+    @property
+    def label_shape(self):
+        command_dict = self.command_dict.as_input()
+        return self.predict_label_shape(**command_dict)
+
     def _get_dataframe(self):
         chrom = list()
         start = list()
@@ -998,6 +1074,71 @@ class StringSeqIntervalDl(object):
                                            self.sec_sampling_mode,
                                            self.sec_normalization_mode)
 
+    @classmethod
+    def default_dict(cls):
+        return utils.get_default_args(cls.__init__)
+
+    @classmethod
+    def predict_sec_input_shape(cls, **input_dict):
+        command_dict = cls.default_dict()
+        command_dict.update(input_dict)
+
+        if command_dict['sec_inputs'] is None:
+            return None
+
+        assert not isinstance(command_dict['sec_input_length'], str),\
+        """To anticipate the secondary shape sec_input_length must be an integer"""
+
+        if isinstance(command_dict['sec_inputs'], str):
+            command_dict['sec_inputs'] = [command_dict['sec_inputs']]
+
+        if isinstance(command_dict['sec_nb_annotation'], int):
+            assert len(command_dict['sec_inputs'])\
+            % command_dict['sec_nb_annotation'] == 0,\
+            """sec_nb_annotation should devide the length of sec_inputs"""
+            
+            sec_input_shape = (command_dict['sec_input_length'],
+                               len(command_dict['sec_inputs'])\
+                               // command_dict['sec_nb_annotation'],
+                               command_dict['sec_nb_annotation'])
+        else:
+            sec_input_shape =  (command_dict['sec_input_length'],
+                                len(command_dict['sec_inputs']))
+            
+        if command_dict['sec_input_shape']:
+            try:
+                np.zeros(sec_input_shape).reshape(command_dict['sec_input_shape'][1:])
+                return command_dict['sec_input_shape'][1:]
+            except ValueError:
+                raise ValueError("""The required secondary input shape is not compatible with the 
+                other arguments""")
+                
+        else:
+            return sec_input_shape
+
+    @property
+    def secondary_input_shape(self):
+        command_dict = self.command_dict.as_input()
+        command_dict['sec_input_length'] = self.sec_input_length
+        return self.predict_sec_input_shape(**command_dict)
+
+    @classmethod
+    def predict_label_shape(cls, **input_dict):
+        assert 'annotation_files' in input_dict,\
+        """To create an instance passing annotation_files is required"""
+
+        if isinstance(input_dict['annotation_files'], str):
+            input_dict['annotation_files'] = [input_dict['annotation_files']]
+        
+        if input_dict['annotation_files'][0].endswith(('.bed', '.gff', 'gff3', 'gtf')):
+            return SparseDataset.predict_label_shape(**input_dict)
+        elif input_dict['annotation_files'][0].endswith(('.wig', '.bw', 'bedGraph')):
+            return ContinuousDataset.predict_label_shape(**input_dict)
+
+    @property
+    def label_shape(self):
+        return self.dataset.label_shape
+
     def __len__(self):
         return len(self.dataset)
 
@@ -1156,3 +1297,69 @@ class SeqIntervalDl(object):
     @property
     def command_dict(self):
         return utils.ArgumentsDict(self, called_args='seq_dl')
+
+    @classmethod
+    def default_dict(cls):
+        return utils.get_default_args(cls.__init__)
+    
+    @classmethod
+    def predict_sec_input_shape(cls, **input_dict):
+        return StringSeqIntervalDl.predict_sec_input_shape(**input_dict)
+
+    @property
+    def secondary_input_shape(self):
+        return self.seq_dl.secondary_input_shape
+    
+    @classmethod
+    def predict_label_shape(cls, **input_dict):
+        return StringSeqIntervalDl.predict_label_shape(**input_dict)
+    
+    @property
+    def label_shape(self):
+        command_dict = self.command_dict.as_input()
+        return self.seq_dl.label_shape
+    
+    @classmethod
+    def predict_input_shape(cls, **input_dict):
+        command_dict = cls.default_dict()
+        command_dict.update(input_dict)
+        
+        assert "annotation_files" in command_dict,\
+        """annotation_files is needed to calculate the input shape"""
+
+        if isinstance(command_dict['annotation_files'], str):
+            command_dict['annotation_files'] = [command_dict['annotation_files']]
+
+        if command_dict['annotation_files'][0].endswith(('.bed', '.gff', 'gff3', 'gtf')):
+            assert 'seq_len' in command_dict,\
+            """seq_len can not be set as default if we want to anticipate the input shape"""
+            assert not isinstance(command_dict['seq_len'], str),\
+            """seq_len must be an integer to calculate the input shape"""
+            length = command_dict['seq_len']
+            
+        elif command_dict['annotation_files'][0].endswith(('.wig', '.bw', 'bedGraph')):
+            assert 'window' in command_dict,\
+            """window is needed to calculate the input shape with bigwig files"""
+            length = command_dict['window']
+            
+        if command_dict['dummy_axis']:
+            shape = np.zeros((3,), dtype=int)
+            shape[command_dict['dummy_axis']] = 1
+            shape[command_dict['alphabet_axis']] = 4
+            shape[shape == 0] = length
+            return tuple(shape)
+        else:
+            shape = np.zeros((2,), dtype=int)
+            shape[command_dict['alphabet_axis']] = 4
+            shape[shape == 0] = length
+            return tuple(shape)
+    
+    @property
+    def input_shape(self):
+        command_dict = self.command_dict.as_input()
+
+        if command_dict['annotation_files'][0].endswith(('.bed', '.gff', 'gff3', 'gtf')):
+            command_dict['seq_len'] = self.seq_dl.dataset.length
+
+        return self.predict_input_shape(**command_dict)
+    

@@ -12,7 +12,7 @@ from copy import deepcopy
 
 from .sequence import SeqIntervalDl, StringSeqIntervalDl
 from .normalization import Weights
-from .utils import ArgumentsDict
+from .utils import ArgumentsDict, get_default_args
 
 class Generator(object):
     """
@@ -51,7 +51,6 @@ class Generator(object):
          kwargs:
              dictionnary with specific arguments to the dataloader.
     """
-    
     def __init__(self, batch_size,
                        one_hot_encoding=True,
                        output_shape=None,
@@ -64,7 +63,18 @@ class Generator(object):
         self.weighting_mode = weighting_mode
         self.bins = bins
         self.frame = inspect.currentframe()
-        
+
+        old_shape = StringSeqIntervalDl.predict_label_shape(**kwargs)
+
+        if self.output_shape:
+            try:
+                new_shape = self.output_shape[1:]
+                np.zeros(old_shape).reshape(new_shape)
+            except ValueError:
+                raise ValueError("""output_shape is incompatible with the other arguments.
+                Trying to reshape an array of shape {} in shape {}""".format(old_shape,
+                                                                             new_shape))
+
         if self.one_hot_encoding:
             self.dataset = SeqIntervalDl(*args,
                                          **kwargs)
@@ -110,13 +120,74 @@ class Generator(object):
                         yield inputs, outputs
             
         return generator_function(self.dataset, self.batch_size)
-    
+
     def __len__(self):
         return len(self.dataset) // self.batch_size
-    
+
     @property
     def command_dict(self):
         return ArgumentsDict(self, called_args='dataset')
+
+    @classmethod
+    def default_dict(cls):
+        return get_default_args(cls.__init__)
+    
+    @classmethod
+    def predict_sec_input_shape(cls, **input_dict):
+        return StringSeqIntervalDl.predict_sec_input_shape(**input_dict)
+
+    @property
+    def secondary_input_shape(self):
+        try:
+            return self.dataset.secondary_input_shape
+        except AttributeError:
+            return self.dataset.seq_dl.secondary_input
+    
+    @classmethod
+    def predict_label_shape(cls, **input_dict):
+        command_dict = cls.default_dict()
+        command_dict.update(input_dict)
+
+        output_shape = StringSeqIntervalDl.predict_label_shape(**command_dict)
+
+        if command_dict['output_shape']:
+            try:
+                new_shape = command_dict['output_shape'][1:]
+                np.zeros(output_shape).reshape(new_shape)
+                output_shape = new_shape
+            except ValueError:
+                raise ValueError("""output_shape is incompatible with the other arguments.
+                Try to reshape an array of shape {} in shape {}""".format(output_shape,
+                                                                          new_shape))
+        return output_shape
+
+    @property
+    def label_shape(self):
+        command_dict = self.command_dict.as_input()
+
+        if command_dict['output_shape']:
+            return command_dict['output_shape'][1:]
+        else:
+            return self.dataset.label_shape
+
+    @classmethod
+    def predict_input_shape(cls, **input_dict):
+        command_dict = cls.default_dict()
+        command_dict.update(input_dict)
+        
+        if command_dict['one_hot_encoding']:
+            return SeqIntervalDl.predict_input_shape(**command_dict)
+        else:
+            return None
+
+    @property
+    def input_shape(self):
+        command_dict = self.command_dict.as_input()
+
+        if command_dict['one_hot_encoding']:
+            return self.dataset.input_shape
+        else:
+            return None
 
 
 class MultiGenerator(object):
@@ -149,6 +220,7 @@ class MultiGenerator(object):
         self.inst_per_dataset = inst_per_dataset
         self.output_shape = output_shape
         self.frame = inspect.currentframe()
+        self._verify_dataset_list()
 
     def __call__(self):
         """Returns a generator to train a keras model (yielding inputs and
@@ -230,6 +302,56 @@ class MultiGenerator(object):
         argsdict_list = [dataset.command_dict for dataset in self.dataset_list]
         argsdict_list.append(ArgumentsDict(self, kwargs=False))
         return argsdict_list
+
+    def _verify_dataset_list(self):
+        double_check = zip(self.dataset_list[:-1],
+                           self.dataset_list[1:])
+
+        for d1, d2 in double_check:
+            assert type(d1) == type(d2),\
+            """All dataset should be of the same class"""
+
+            try:
+                assert d1.input_shape == d2.input_shape,\
+                """Found incompatible input shape: {} and {}""".format(d1.input_shape,
+                                                                       d2.input_shape)
+            except NameError:
+                pass
+
+            assert d1.secondary_input_shape == d2.secondary_input_shape,\
+            """Found incompatible secondary input shape: {} and {}""".\
+            format(d1.secondary_input_shape, d2.secondary_input_shape)
+
+            assert d1.label_shape == d2.label_shape,\
+            """Found incompatible label shape {} and {}""".format(d1.label_shape,
+                                                                  d2.label_shape)
+
+        if self.output_shape:
+            try:
+                np.zeros(self.output_shape[1:]).reshape(self.dataset_list[0].label_shape)
+            except ValueError:
+                raise ValueError("""output_shape is incompatible with the other arguments.
+                Trying to reshape an array of shape {} in shape {}""".\
+                                 format(self.output_shape[1:],
+                                        self.dataset_list[0].label_shape))
+
+    @property
+    def input_shape(self):
+        try:
+            return self.dataset_list[0].input_shape
+        except NameError:
+            return None
+
+    @property
+    def secondary_input_shape(self):
+        return self.dataset_list[0].secondary_input_shape
+
+    @property
+    def label_shape(self):
+        if self.output_shape:
+            return self.output_shape[1:]
+        else:
+            return self.dataset_list[0].label_shape 
 
 
 class PredictionGenerator(object):

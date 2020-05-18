@@ -12,41 +12,13 @@ import pyBigWig
 import os
 import inspect
 
-def continuous_weights(x, threshold=10**4, include_zeros=False,
-						  correction='max_relative'):
-	"""
-		Take an array as input and return an array of the same length
-		with the weights to be used in the training procedure. The
-		dataset will be balanced (the weights are 1 / frequency).
-
-		args:
-			x: array with integer values (as usual in genomics)
-			threshold: over this threshold the weights is set to 0.
-			include_zeros: if false weights corresponding to zeros is 0.
-			correction: 'balanced' or 'max_relative'
-	"""
-	indexes, counts = np.unique(x, return_counts=True)
-	weights = np.ones(x.shape)
-
-	if correction == 'max_relative':
-		# we calculate the maximum counts without zeros (overrepresented)
-		maximum = np.max(counts[1:])
-
-		for index, count in zip(indexes, counts):
-			weights[x == index] = maximum / float(count)
-
-	if correction == 'balanced':
-		# we calculate the total counts without zeros (overrepresented)
-		total = np.sum(counts[1:])
-
-		for index, count in zip(indexes, counts):
-			weights[x == index] = total / float(count)
-
-	if not include_zeros:
-		weights[x == 0] = 0
-
-	weights[weights > threshold] = 0
-	return weights
+def get_default_args(func):
+    signature = inspect.signature(func)
+    return {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
 
 def bed_to_df(bedfile, annotation_list):
     bedfile = pybedtools.BedTool(bedfile)

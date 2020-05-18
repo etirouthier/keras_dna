@@ -60,9 +60,11 @@ class ModelWrapper(object):
                  weights_val=False):
         self.model = model
         self.generator_train = generator_train
+        self._verify_compatibility(generator_train)
 
         if generator_val:
             self.generator_val = generator_val
+            self._verify_compatibility(generator_val)
         elif validation_chr:
             command_dict = deepcopy(self.generator_train.command_dict.as_input())
             command_dict['incl_chromosomes'] = validation_chr
@@ -70,6 +72,38 @@ class ModelWrapper(object):
             if not weights_val:
                 command_dict['weighting_mode'] = None
             self.generator_val = Generator(**command_dict)
+
+    def _verify_compatibility(self, generator):
+        if isinstance(self.model.input_shape, list):
+            assert self.model.input_shape[0][1:] == generator.input_shape,\
+            """Generator and model input shape are not compatible,
+               Model requires {}, generator yields {}""".format(self.model.input_shape[0][1:],
+                                                                generator.input_shape)
+
+            assert self.model.input_shape[1][1:] == generator.secondary_input_shape,\
+            """Generator and model secondary input shape are not compatible,
+               Model requires {}, generator yields {}""".format(self.model.input_shape[1][1:],
+                                                                generator.secondary_input_shape)
+        else:
+            assert self.model.input_shape[1:] == generator.input_shape,\
+            """Generator and model input shape are not compatible,
+               Model requires {}, generator yields {}""".format(self.model.input_shape[1:],
+                                                                generator.input_shape)
+        if isinstance(self.model.output_shape, list):
+            assert self.model.output_shape[0][1:] == generator.label_shape,\
+            """Generator and model label shape are not compatible,
+               Model requires {}, generator yields {}""".format(self.model.output_shape[0][1:],
+                                                                generator.label_shape)
+
+            assert self.model.input_shape[1][1:] == generator.secondary_input_shape,\
+            """Generator and model secondary output shape are not compatible,
+               Model requires {}, generator yields {}""".format(self.model.input_shape[1][1:],
+                                                                generator.secondary_input_shape)
+        else:
+            assert self.model.output_shape[1:] == generator.label_shape,\
+            """Generator and model label shape are not compatible,
+               Model requires {}, generator yields {}""".format(self.model.output_shape[1:],
+                                                                generator.label_shape)
 
     def train(self,
               epochs,
@@ -427,6 +461,7 @@ class ModelWrapper(object):
                                                   incl_chromosomes,
                                                   fasta_file,
                                                   rc)
+        return self.pred_generator
         prediction = self.model.predict_generator(generator=self.pred_generator(),
                                                   steps=len(self.pred_generator),
                                                   *args,
