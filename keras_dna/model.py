@@ -461,7 +461,7 @@ class ModelWrapper(object):
                                                   incl_chromosomes,
                                                   fasta_file,
                                                   rc)
-        return self.pred_generator
+
         prediction = self.model.predict_generator(generator=self.pred_generator(),
                                                   steps=len(self.pred_generator),
                                                   *args,
