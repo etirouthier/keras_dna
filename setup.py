@@ -5,7 +5,7 @@ HERE = pathlib.Path(__file__).parent
 README = (HERE/"README.md").read_text()
 
 setup(name="keras_dna",
-      version="0.0.15",
+      version="0.0.16",
       description="Build keras generator for genomic application",
       long_description=README,
       long_description_content_type="text/markdown",
