@@ -741,6 +741,9 @@ class ContinuousDataset(object):
             default=None
         excl_chromosomes:
             list of chromosome names to omit from the dataset. default=None
+        start_stop:
+            list of tuple indicating where to start and stop generating data.
+            One per included chromosome. default=None
         ignore_targets: 
             if True, target variables are ignored, default=False
         size:
@@ -758,6 +761,7 @@ class ContinuousDataset(object):
                        num_chr=False,
                        incl_chromosomes=None,
                        excl_chromosomes=None,
+                       start_stop=None,
                        ignore_targets=False,
                        size=None):
         
@@ -772,6 +776,7 @@ class ContinuousDataset(object):
         self.num_chr = num_chr
         self.incl_chromosomes = incl_chromosomes
         self.excl_chromosomes = excl_chromosomes
+        self.start_stop = start_stop
         self.ignore_targets = ignore_targets
         self.df = pd.DataFrame()
         self.size = size
@@ -828,6 +833,21 @@ class ContinuousDataset(object):
                                       chrom_size.sizes.values):
                     if name not in excl_chromosomes:
                         self.chrom_size[name] = size
+        
+        if self.start_stop is not None:
+            if isinstance(self.start_stop, tuple):
+                self.start_stop = [self.start_stop]
+            assert len(self.start_stop) == len(self.chrom_size),\
+            """len(start_stop) should match the number of chromosome
+            included. Found {} and expected {}""".format(len(self.start_stop),
+                                                         len(self.chrom_size))
+
+            for size, start_stop in zip(self.chrom_size.values(), self.start_stop):
+                assert start_stop[0] >= self.hw,\
+                """start in start_stop must be greater than the half of window"""
+                assert start_stop[1] < size - self.hw,\
+                """stop in start_stop must be smaller than the chromosome size
+                minus the half of window"""
 
         self.asteps=1
         if not self.downsampling:
@@ -895,14 +915,23 @@ class ContinuousDataset(object):
         stop = list()
         first_index = list()
         last_index = list()
-        
-        for name, size in self.chrom_size.items():
-            chrom.append(name)
-            start.append(self.hw)
-            stop.append(size - self.hw - (self.window % 2))
-            first_index.append(0)
-            last_index.append((stop[-1] - start[-1]) // self.asteps)
-        
+
+        if self.start_stop is not None:
+            for name, start_stop in zip(self.incl_chromosomes,
+                                        self.start_stop):
+                chrom.append(name)
+                start.append(start_stop[0])
+                stop.append(start_stop[1])
+                first_index.append(0)
+                last_index.append((stop[-1] - start[-1]) // self.asteps)
+        else:
+            for name, size in self.chrom_size.items():
+                chrom.append(name)
+                start.append(self.hw)
+                stop.append(size - self.hw - (self.window % 2))
+                first_index.append(0)
+                last_index.append((stop[-1] - start[-1]) // self.asteps)
+
         last_index = np.cumsum(last_index)
         for i in range(len(last_index)):
             last_index[i] += i

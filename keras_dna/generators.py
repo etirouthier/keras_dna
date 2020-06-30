@@ -371,6 +371,9 @@ class PredictionGenerator(object):
             An ArgumentsDict instance that described how the model was trained.
         incl_chromosomes:
             list of chromosome to predict on.
+        start_stop:
+            list of tuple indicating where to start and stop generating data.
+            One per included chromosome. default=None
         fasta_file:
             A fasta_file to make prediction on (if None the same as in
             command_dict)
@@ -384,11 +387,13 @@ class PredictionGenerator(object):
                  command_dict,
                  chrom_size,
                  incl_chromosomes,
+                 start_stop=None,
                  fasta_file=None,
                  rc=False):
         self.batch_size = batch_size
         self.command_dict = command_dict
         self.chrom_size = chrom_size
+        self.start_stop = start_stop
         self.rc = rc
 
         if isinstance(incl_chromosomes, list):
@@ -426,6 +431,7 @@ class PredictionGenerator(object):
                            'overlapping' : False,
                            'window' : self.window,
                            'incl_chromosomes' : self.incl_chromosomes,
+                           'start_stop' : self.start_stop,
                            'tg_window' : self.tg_window}
 
         if 'keras_dna.sequence.SeqIntervalDl' in self.detailed_dict:
@@ -439,18 +445,21 @@ class PredictionGenerator(object):
             self.dataset = StringSeqIntervalDl(**self.input_dict)
 
     def __len__(self):
-        return len(self.dataset) // self.batch_size
+        return len(self.dataset) // self.batch_size + 1
 
     def __call__(self):
         """Returns a generator to train a keras model (yielding inputs and
         outputs)."""
         def generator_function(dataset, batch_size):
             indexes = np.arange(len(dataset))
-            number_of_batches = len(dataset) // batch_size
+            number_of_batches = len(dataset) // batch_size + 1
 
             while True:
                 for num in range(number_of_batches):
-                    batch_indexes = indexes[num*batch_size : (num + 1) * batch_size]
+                    if num == number_of_batches - 1:
+                        batch_indexes = indexes[num * batch_size :]
+                    else:
+                        batch_indexes = indexes[num*batch_size : (num + 1) * batch_size]
                     data = dataset[list(batch_indexes)]
                     yield data['inputs']
 

@@ -416,6 +416,7 @@ class ModelWrapper(object):
     def predict(self,
                 incl_chromosomes,
                 chrom_size,
+                start_stop=None,
                 batch_size=32,
                 fasta_file=None,
                 export_to_path=None,
@@ -432,6 +433,9 @@ class ModelWrapper(object):
                 list of chromosomes to make the prediction on
             chrom_size:
                 File with the size of chromosomes in two columns (tab separated)
+            start_stop:
+                list of tuple indicating where to start and stop predicting.
+                One per included chromosome. default=None
             batch_size:
                 batch size
             fasta_file:
@@ -459,6 +463,7 @@ class ModelWrapper(object):
                                                   command_dict,
                                                   chrom_size,
                                                   incl_chromosomes,
+                                                  start_stop,
                                                   fasta_file,
                                                   rc)
 
@@ -622,7 +627,7 @@ class ModelWrapper(object):
                                int(row.start),
                                values=values,
                                span=int(resolution),
-                               step=int(resolution))  
+                               step=int(resolution))
         bw_file.close()
 
 
