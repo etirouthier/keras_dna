@@ -2,7 +2,7 @@
 
 ## Introduction
 
-`Generator` can be use to feed a keras model with sequences that are annotated with a continuous function such as MNase or ChIP-seq. The corresponding input files are formatted in bigWig, wig or bedGraph. `Generator` will detect such files with the suffix .bw, .wig, .bedGraph. The length of the generated sequence needs to be passed with the keyword `window`.
+`Generator` can be use to feed a keras model with DNA sequences annotated by a continuous function such as MNase or ChIP-seq. The corresponding annotation files are formatted in bigWig, wig or bedGraph. `Generator` will detect such files with the suffix .bw, .wig, .bedGraph. The length of the generated sequence needs to be passed with the keyword `window`.
 
 Note that for wig and bedGraph a file containing the chromosome size in two tap separated columns need to be passed and named *.chrom.sizes.
 
