@@ -6,7 +6,7 @@
 
 ## Creating an instance
 
-To create an instance of `MutliGenerator` one needs firstly to create the datasets involved and to ensure that the shape of the inputs and the labels are the same in all those datasets. The mandatory arguments are `batch_size` and `dataset_list`.
+To create an instance of `MutliGenerator`,  create firstly the datasets involved and ensure that the shape of their inputs and their labels are all the same. The mandatory arguments are `batch_size` and `dataset_list`.
 
 ```python
 from keras_dna import SeqIntervalDl, MultiGenerator
