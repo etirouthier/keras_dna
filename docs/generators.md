@@ -11,7 +11,7 @@ generator = Generator(batch_size=64, fasta_file='species.fa', ...)
 ```
 ## Adapting the output shape
 
-By default the label shape of `Generator` is in general `(batch_size, len(target), nb cell type, nb annotation` or for a non seq2seq classification model `(batch_size, nb cell type, nb annotation)` but one may want to modify this shape. Use the keyword `output_shape` to do so.
+By default the label shape of `Generator` is in general `(batch_size, len(target), nb cell type, nb annotation` or for a non seq2seq classification model `(batch_size, nb cell type, nb annotation)` but one may want to modify this shape to match the output shape of the model (labels are compared with the output of the model). Pass the desired output shape through a tuple (keyword `output_shape`) to do so. Note that the first number of the tuple is the batch size and should match the `batch_size` argument.
 
 ```python
 from keras_dna import Generator
@@ -63,7 +63,7 @@ generator = Generator(batch_size=64,
 
 ## DNA sequence in string format
 
-Models inspired from the natural language processing domain use DNA sequence in string format. To return the DNA sequence in string format, set `one-hot-encoding` to false in `Generator`. The keyword `force_upper` force the letter to be uppercase.
+Models inspired from the natural language processing domain use DNA sequence in string format. To return the DNA sequences in string format, set `one-hot-encoding` to false in `Generator`. The keyword `force_upper` force the letter to be uppercase.
 
 ```python
 from keras_dna import Generator
@@ -107,7 +107,7 @@ generator = Generator(batch_size=64,
 
 ## Adding weights to the training
 
-To handle highly unbalanced distributions such as in genomics, the need of adding weights to the training often appears. The keyword `weighting_mode` and `bins` will be covered in details in [Weights](weights.md).
+In genomics, most of the data are unbalanced in terms of distribution (for example there are much more background sequences than annotated sequences), adding weights to the training can mitigate this fact. The keyword `weighting_mode` and `bins` will be covered in details in [Weights](weights.md).
 
 ## Adapting the shape of the one-hot-encoded DNA sequence
 
@@ -158,7 +158,7 @@ generator = Generator(batch_size=64,
 
 ## Name of chromosomes
 
-The annotation files and the fasta file are sometimes incoherent in there naming of chromosomes. To correct this relatively frequent issue, the keyword `num_chr` can be used, set to True it drop 'chr' from the annotation file chromosome name if present, set to False (default) it add 'chr' to the annotation file chromosome name if absent.
+The annotation files and the fasta file are sometimes incoherent in there naming of chromosomes. To correct this relatively frequent issue, the keyword `num_chr` can be used, set to True it drop 'chr' from the chromosome name in the annotation file if present, set to False (default) it add 'chr' to the chromosome name in the annotation file if absent.
 
 ```python
 from keras_dna import Generator
