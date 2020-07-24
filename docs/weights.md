@@ -50,11 +50,11 @@ generator = Generator(batch_size=64,
                                        [[0.5, 2, 3, 4], [0.1, 1, 2, 4]])
 ```
 
-**Warning :** to use weights with a regression generator one needs to compile the model setting `sample_weight_mode` to 'temporal'.
+**Warning :** to use weights with for a regression task one needs to compile the model setting `sample_weight_mode` to 'temporal'.
 
 ## Classification
 
-For classification ona consider positive class to be all traning examples labelled positively for at least one function, and the negative class all examples negatively labelled for all functions. The distribution is the distribution of generated examples, not the distribution in the genome. One can automatically set weights to balance the dataset or pass the weights manually in a tuple `(weights_positive, weights_negative)`.
+For classification one considers the positive class to be all traning examples labelled positively for at least one function in one cellular type, and the negative class all training examples negatively labelled for all functions in all cellular type. Weights can automatically be set weights to balance the positive and negative class or be set manually through a tuple `(weights_positive, weights_negative)`. Note that for automatical setting of weights, the positive-negative distribution is the one of the training examples not of the genome.
 
 ```python
 
