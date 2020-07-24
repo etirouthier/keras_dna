@@ -18,17 +18,17 @@ generator = Generator(batch_size=64,
 
 Follow the previous example to apply only one normalization to the labels. The available normalizations are :
 
-- `'zscore'`: substracting the mean of the mean of the values and dividing by the standard deviation.
-- `'max'`: dividing by the maximum of the values
+- `'zscore'`: substracting the mean values and dividing by the standard deviation.
+- `'max'`: dividing by the maximal values
 - `'perctrim'`: trimming the distribution to the last percentile (all values above are set equal to the last percentile)
 - `'logtransform'`: taking the log of the values : `np.log(values + 1)`
-- `'min_max'`: substracting `min` and dividing by `(max - min)`, the values are between 0 and 1 after.
+- `'min_max'`: substracting `min` and dividing by `(max - min)` to clip values between 0 and 1.
 
-The statistics are taken on the whole genome for consistency between all the generator created with a given file. Note that only chromosomes named with a number are taken into account to avoid taking into account variant.
+The statistics are taken on the whole genome for consistency between all the generator created with a given file. Note that only chromosomes named with a number (arabic or roman) are taken into account.
 
 ## Applying two successive normalizations
 
-It is usually useful to apply two successive normalizations, in particular trimming the sequence before applying another available normalization. `Generator` owns the possibility to apply up to two successive normalizations. In this case the available normalization modes are the same and statistics (min, max, std) are taken on a subsample of the whole genome.
+It is sometimes useful to apply two successive normalizations, in particular trimming the sequence before applying another available normalization. `Generator` owns the possibility to apply up to two successive normalizations. In this case the available normalization are the same but the statistics (min, max, std) are taken on a subsample of the whole genome.
 
 ```python
 from keras_dna import Generator
