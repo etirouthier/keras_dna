@@ -4,7 +4,7 @@
 
 A standard evaluation of classification model is to calculate the AUROC or the AUPRC. `Generator` enables to easily evaluating this quantity. First, if the model is designed to predict several function on several cell types, they will be treated one by one to evaluate the model.
 
-The standard definition of positive example is to consider one sequence as positive per function instance and as negative example all the sequences of the desired length without any intersection with the positive sequences. Other sequences,as they are a mix of positive sequences and the sequences receive no labels and are not taken into account in the calculation.
+The standard definition of positive example is to consider one sequence as positive per annotation occurence and as negative example all the sequences of the desired length without any intersection with positive sequences. Other sequences, as they are a mix of positive sequences and the sequences receive no labels and are not taken into account in the calculation.
 
 If the keyword `data_augmentation` is set to True then the positive examples will be all the sequences that contains a whole example of an annotation. The negative examples are the sequences without any intersection with a positive example. (default behaviour)
 
@@ -68,7 +68,7 @@ wrap.get_auc(incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4'],
 
 For `MultiGenerator` this procedure needs to be followed to specify the species on which one wants to evaluate the AUC.
 
-The number of file in annotation_list should be the same in both the generator and the `.get_auc()` method. If one wants to evaluate on less file one should complete the list with zeros and place the files at the position corresponding to there cell type.
+The number of file in annotation_list should be the same in both the generator and the `.get_auc()` method. If one wants to evaluate on less file one should complete the list with zeros and place the files at the position corresponding to their cell type.
 
 ```python
 
@@ -95,7 +95,7 @@ wrap.get_auc(incl_chromosomes=['chr1', 'chr2', 'chr3', 'chr4'],
 ```
 ## Correlation
 
-Evaluating the correlation is a standard evaluation for continuous data. The method `.get_correlation()` fournishes the possibility of easily evaluating the correlation between the predicted and real coverage for every annotation and cell type.
+Evaluating the correlation is a standard evaluation for continuous data. The method `.get_correlation()` enables easily evaluating the correlation between the predicted and real coverage for every annotation and cell type.
 
 ```python
 
