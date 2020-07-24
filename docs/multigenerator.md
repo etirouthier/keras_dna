@@ -2,7 +2,7 @@
 
 ## Introduction
 
-`MultiGenerator` is a class useful to train a model on several species at the same time or on both the positive and negative strand of the data. It uses several datasets ([Dataset](dataset.md)) to generate batches of data that are a mix of the data coming from every dataset.
+`MultiGenerator` is a class useful to train a model on several species at the same time or on both the positive and negative strand of the genome. It uses several datasets ([Dataset](dataset.md)) to generate batches of data that mix data coming from every dataset.
 
 ## Creating an instance
 
@@ -32,7 +32,7 @@ Use the keyword `output_shape` to readapt the labels shape to your need (same pr
 
 ## Changing the number of instance per dataset
 
-If one needs to control the number of instance that the generator will return for every dataset, one can use the keyword `inst_per_dataset`. A list of the number of instance for every dataset need to be passed, the order in the number list must be the same as in the dataset list. The default behaviour is to generate all the data available (which can leads to a bias toward one species).
+To control the number of instance per dataset that the generator yields, use the keyword `inst_per_dataset`. The number of instance per dataset is passed through a list in the same order as the datasets in `dataset_list`. The default behaviour is to generate all the data available (which can leads to a bias toward one species).
 
 ```python
 from keras_dna import SeqIntervalDl, MultiGenerator
