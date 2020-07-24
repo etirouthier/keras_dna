@@ -95,7 +95,7 @@ class ModelWrapper(object):
                Model requires {}, generator yields {}""".format(self.model.output_shape[0][1:],
                                                                 generator.label_shape)
 
-            assert self.model.input_shape[1][1:] == generator.secondary_input_shape,\
+            assert self.model.output_shape[1][1:] == generator.secondary_input_shape,\
             """Generator and model secondary output shape are not compatible,
                Model requires {}, generator yields {}""".format(self.model.input_shape[1][1:],
                                                                 generator.secondary_input_shape)
