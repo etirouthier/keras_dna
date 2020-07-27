@@ -75,6 +75,41 @@ dataset = SeqIntervalDl(fasta_file='species.fa',
 
 The type of the np.ndarray created can be chosen using the keyword `dtype`.
 
+## Anticipating the input / label shape
+
+Use the class methods `predict_input_shape`, `predict_label_shape` and `predict_sec_input_shape` to calculate the corresponding shape before creating an instance of a `SeqIntervalDl`. Note that the batch size is not included in the returned tuple.
+
+```python
+>>> from keras_dna import SeqIntervalDl
+
+>>> SeqIntervalDl.predict_input_shape(batch_size=64,
+                                      fasta_file='species.fa',
+                                      annotation_files='ann.bw',
+                                      window=299,
+                                      output_shape=(64, 1))
+(299, 4)
+
+>>> SeqIntervalDl.predict_label_shape(batch_size=64,
+                                      fasta_file='species.fa',
+                                      annotation_files='ann.bw',
+                                      window=299,
+                                      output_shape=(64, 1))
+(1,)
+
+>>> SeqIntervalDl.predict_sec_input_shape(batch_size=64,
+                                          fasta_file='species.fa',
+                                          annotation_files='ann.bw',
+                                          window=299,
+                                          output_shape=(64, 1),
+                                          sec_inputs=['ann2.bw', 'ann3.bw'],
+                                          sec_input_length=199)
+(199, 2)
+```
+
+
+-------------------------------------------------
+
+
 
 ## StringSeqIntervalDl
 
@@ -95,5 +130,7 @@ dataset = StringSeqIntervalDl(fasta_file='species.fa',
                               annotation_files=['ann.bw'],
                               window=299)
 ```
+
+Use the class method `predict_label_shape` and `predict_sec_input_shape` to predict the corresponding shape before creating an instance.
 
 --------------------------------
