@@ -198,7 +198,7 @@ generator = Generator(batch_size=64,
 - `sec_normalization_mode`: similar to `normalization_mode`
 - `use_sec_as`: {'targets', 'inputs'}.
 
-## Anticipating the input-label shape
+## Anticipating the input / label shape
 
 The main goal of the `Generator` class is to yields data in an adapted format to train a keras model. Use the class methods `predict_input_shape`, `predict_label_shape` and `predict_sec_input_shape` to calculate those shape before creating an instance. Note that the batch size is not included in the returned tuple.
 
@@ -218,6 +218,15 @@ The main goal of the `Generator` class is to yields data in an adapted format to
                                   window=299,
                                   output_shape=(64, 1))
 (1,)
+
+>>> Generator.predict_sec_input_shape(batch_size=64,
+                                      fasta_file='species.fa',
+                                      annotation_files='ann.bw',
+                                      window=299,
+                                      output_shape=(64, 1),
+                                      sec_inputs=['ann2.bw', 'ann3.bw'],
+                                      sec_input_length=199)
+(199, 2)
 ```
 
 
