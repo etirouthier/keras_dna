@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Dataset is used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one needs to use them directly and this section shows how.
+Dataset is used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one needs to use it directly and this section shows how.
 
 There are two classes of dataset : 
 
@@ -114,7 +114,7 @@ Use the class methods `predict_input_shape`, `predict_label_shape` and `predict_
 ## StringSeqIntervalDl
 
 
-The `StringSeqIntervalDl` owns the same keyword as the `SeqIntervalDl` class except `dummy_axis`, `alphabet_axis`, `alphabet` and `dtype`. 
+The `StringSeqIntervalDl` owns the same keywords as the `SeqIntervalDl` class except `dummy_axis`, `alphabet_axis`, `alphabet` and `dtype`. 
 
 Creating a `StringSeqIntervalDl` instance:
 ```python
