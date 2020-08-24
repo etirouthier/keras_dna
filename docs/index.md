@@ -23,11 +23,11 @@ Keras_dna is compatible with: __Python 3.6__.
 
 - Furnishing a simplified API to create generators of genomic data.
 
-- Reading the DNA sequence directly and effectively in fasta file to discard the need of conversion.
+- Reading the DNA sequence directly and effectively from fasta files, to discard the need of conversion.
 
 - Generating the DNA sequence corresponding to the desired annotation (can be sparse annotation or continuous), passed with standard bioinformatic files (gff, bed, bigWig, bedGraph).
 
-- Easily adapting to the type of annotation, their number, the number of different cell type or species.
+- Easily adapting to the type of annotations, their number, the number of different cell types or species.
 
 ------------------
 
@@ -38,7 +38,7 @@ The core classes of keras_dna are `Generator`, to feed the keras model with geno
 
 `Generator` creates batches of DNA sequences corresponding to the desired annotation.
 
-First example, a `Generator` instance that yields DNA sequences corresponding to a given genomical function (here binding site) as positive class and other sequences as negative class. The genome is fournished through a fasta file and the annotation is fournished with a gff file (could have been a bed), the DNA is one-hot-encoded, the genomical functions that we want to target need to be passed in a list.
+First example, a `Generator` instance that yields DNA sequences corresponding to a given genomical function (here binding site) as the positive class and other sequences as the negative class. The genome is furnished through a fasta file and the annotation is fournished with a gff file (could have been a bed), the DNA is one-hot-encoded, the genomical functions that we want to target need to be passed in a list.
 
 ```python
 from keras_dna import Generator
@@ -59,7 +59,7 @@ generator = Generator(batch_size=64,
                       annotation_files=['annotation.bw'],
                       window=100)
 ```
-`Generator` owns a lot of keywords to adapt the format of the data both to the keras model and to the task at hand (predicting the sequence genomical function in different cellular type, classifying between several different functions, predicting from two different inputs, labelling DNA sequences with both their genomical function and an experimental coverage...)
+`Generator` owns a lot of keywords to adapt the format of the data both to the keras model and to the task at hand (predicting the sequence's genomical function in different cellular type, classifying between several different functions, predicting from two different inputs, labelling DNA sequences with both their genomical function and an experimental coverage...)
 
 
 `ModelWrapper` is a class designed to unify a keras model to its generator in order to simplify further usage of the model (prediction, evaluation). 
@@ -116,7 +116,7 @@ wrapper.save(path='./path/to/wrapper', save_model=True)
 - kipoiseq
 - tensorflow 2
               
- We also strongly advice to install [genomelake](https://github.com/kundajelab/genomelake) for fast reading in fasta file. 
+ We also strongly advice installing [genomelake](https://github.com/kundajelab/genomelake) for fast reading of fasta files. 
  
  - **Install Keras_dna from PyPI:**
 
