@@ -2,9 +2,9 @@
 
 ## Introduction
 
-`Generator` can be use to feed a keras model with DNA sequences annotated by a continuous function such as MNase or ChIP-seq. The corresponding annotation files are formatted in bigWig, wig or bedGraph. `Generator` will detect such files with the suffix .bw, .wig, .bedGraph. The length of the generated sequence needs to be passed with the keyword `window`.
+`Generator` can be used to feed a keras model with DNA sequences annotated by a continuous function such as MNase or ChIP-seq. The corresponding annotation files are formatted as bigWig, wig or bedGraph files. `Generator` will detect such files with the suffix .bw, .wig, .bedGraph. The length of the generated sequence needs to be passed with the keyword `window`.
 
-Note that for wig and bedGraph a file containing the chromosome size in two tap separated columns need to be passed and named *.chrom.sizes.
+Note that for wig and bedGraph a file containing the chromosome size in two tab separated columns need to be passed and named *.chrom.sizes.
 
 ```python
 from keras_dna import Generator
@@ -26,7 +26,7 @@ The standard behaviour will be to generate all the DNA sequences of length windo
 
 ## Regression on several cell types and/or annotations
 
-`Generator` is also able to perform multiple regression on several cell types at the same time. In this case one must pass one argument file for one annotation in one cell type. Use the keyword `nb_annotation_type` to specify the number of annotation one wants to predict on every cell type. Then the list of file **needs to be organised** as in the example.
+`Generator` is also able to perform multiple regression on several cell types at the same time. In this case one must pass one argument file for one annotation in one cell type. Use the keyword `nb_annotation_type` to specify the number of annotations one wants to predict on each cell type. Then the list of file **needs to be organised** as in the example.
 
 ```python
 from keras_dna import Generator
@@ -60,7 +60,7 @@ generator = Generator(batch_size=64,
 >>> next(generator())[1].shape
 (64, 1, 3)
 ```                      
-As shown in the last example without specifying `nb_of_annotation` all the labels are set in the 2nd axis.
+As shown in the last example, without specifying `nb_of_annotation`, all the labels are set in the 2nd axis.
 
 ## Length of the labels
 
@@ -82,7 +82,7 @@ generator = Generator(batch_size=64,
 
 ## Downsampling
 
-As previously stated `Generator` can be used to train a seq2seq model, the first sequence being a DNA window and the second the coverage, the default behaviour is to return the raw sequence of coverage values at the center of the DNA window. Using the keyword `downsampling` the `Generator` labels the DNA window with the  corresponding sequence of coverage values but downsampled (if `tg_window` is smaller than `window` then it should divide `window`, if equal then `downsampling` is useless).
+As previously stated, `Generator` can be used to train a seq2seq model, the first sequence being a DNA window and the second the coverage, the default behaviour is to return the raw sequence of coverage values at the center of the DNA window. Using the keyword `downsampling` the `Generator` labels the DNA window with the  corresponding sequence of coverage values but downsampled (if `tg_window` is smaller than `window` then it should divide `window`, if equal then `downsampling` is useless).
 
 ```python
 from keras_dna import Generator
@@ -126,11 +126,11 @@ generator = Generator(batch_size=64,
                       normalization_mode=['max', 'perctrim'])
 ```
 
-**Warning :** note that some normalization parameters are obtained by subsampling the data for memory and time purpose.
+**Warning :** note that some normalization parameters are obtained by subsampling the data for memory and time purposes.
 
 ## Overlapping of sequences
 
-In the case of a seq2seq model the keyword `overlapping` enables to generate either all the data available (i.e with overlapping targets) or to generate only the data with non overlapping labels.
+In the case of a seq2seq model the keyword `overlapping` enables generating either all the data available (i.e with overlapping targets), or generating only the data with non overlapping labels.
 
 ```python
 from keras_dna import Generator
