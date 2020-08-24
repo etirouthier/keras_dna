@@ -49,7 +49,7 @@ generator = Generator(batch_size=64,
                       annotation_list=['binding site'])
 ```
 
-Second example, a `Generator` for continuous annotation, this time the annotation is fournished through a bigWig file (it could have been a wig or a bedGraph, but then a file containing the chromosome sizes needs to be passed as size), the desired length of DNA sequences needs to be passed. This `Generator` instance yields all the DNA sequence of length 100 in the genome and labels it with the coverage at the center nucleotide.
+Second example, a `Generator` for continuous annotation, this time the annotation is furnished through a bigWig file (it could have been a wig or a bedGraph, but then a file containing the chromosome sizes needs to be passed as size), the desired length of DNA sequences needs to be passed. This `Generator` instance yields all the DNA sequence of length 100 in the genome and labels it with the coverage at the center nucleotide.
 
 ```python
 from keras_dna import Generator
