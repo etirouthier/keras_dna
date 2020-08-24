@@ -1,18 +1,19 @@
 # Keras_dna: simplifying deep genomics
 
-![Keras_dna logo](favicon.ico)
+![Keras_dna logo](./docs/favicon.ico)
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/etirouthier/keras_dna/LICENSE)
 
 ## Description:
 
-Keras_dna is an API that helps quick experimentation in applying deep learning to genomics. It enables quickly feeding a keras model (tensorflow) with genomic data without the need of laborious file convertions or storing tremendous amount of converted data. It reads the most common bioinformatics files and creates a generator adapted to the keras model.
+Keras_dna is an API that helps quick experimentation in applying deep learning to genomics. It enables quickly feeding a keras model (tensorflow) with genomic data without the need of laborious file conversions or storing tremendous amount of converted data. It reads the most common bioinformatics files and creates generators adapted to the keras models.
 
 Use Keras_dna if you need a library that:
 
-- Allows fast usage of standard bioinformatic data to feed a keras model (nowadays standard for tensorflow).
+- Allows fast usage of standard bioinformatic data to feed a keras model (nowaday standard for tensorflow).
 - Helps formatting the data to the model's needs.
 - Facilitates the standard evaluation of a model with genomics data (correlation, AUPRC, AUROC)
+
 
 Keras_dna is compatible with: __Python 3.6__.
 
@@ -49,7 +50,7 @@ generator = Generator(batch_size=64,
                       annotation_list=['binding site'])
 ```
 
-Second example, a `Generator` for continuous annotation, this time the annotation is furnished through a bigWig file (it could have been a wig or a bedGraph, but then a file containing the chromosome sizes needs to be passed as size), the desired length of DNA sequences needs to be passed. This `Generator` instance yields all the DNA sequence of length 100 in the genome and labels it with the coverage at the center nucleotide.
+Second example, a `Generator` for continuous annotation, this time the annotation is furnished through a bigWig file (it could have been a wig or a bedGraph, but then a file containing the chromosome sizes needs to be passed as size), the desired length of DNA sequences need to be passed. This `Generator` instance yields all the DNA sequences of length 100 in the genome and labels them with the coverage at the nucleotide at the center.
 
 ```python
 from keras_dna import Generator
@@ -59,10 +60,10 @@ generator = Generator(batch_size=64,
                       annotation_files=['annotation.bw'],
                       window=100)
 ```
-`Generator` owns a lot of keywords to adapt the format of the data both to the keras model and to the task at hand (predicting the sequence's genomical function in different cellular type, classifying between several different functions, predicting from two different inputs, labelling DNA sequences with both their genomical function and an experimental coverage...)
+`Generator` owns a lot of keywords to adapt the format of the data both to the keras model and to the task at hand (predicting the sequences' genomical function in different cellular types, classifying between several different functions, predicting from two different inputs, labelling DNA sequences with both their genomical functions and an experimental coverages...)
 
 
-`ModelWrapper` is a class designed to unify a keras model to its generator in order to simplify further usage of the model (prediction, evaluation). 
+`ModelWrapper` is a class designed to unify a keras model to its generator in order to simplify further usage (prediction, evaluation) of the model. 
 
 ```python
 from keras_dna import ModelWrapper, Generator
@@ -133,7 +134,7 @@ If you are using a virtualenv, you may want to avoid using sudo:
 pip install keras_dna
 ```
 
-Note that libcurl (and the `curl-config` command) are required for installation. This is typically already installed on many Linux and OSX systems (this is also easily available using a conda env, in practise we advice installing pyBigWig with conda before installing keras_dna).
+Note that libcurl (and the `curl-config` command) are required for installation. This is typically already installed on many Linux and OSX systems (this is also easilya vailable using a conda env, in practise we advise installing pyBigWig with conda before installing keras_dna).
 
 
 - **Alternatively: install Keras_dna from the GitHub source:**
