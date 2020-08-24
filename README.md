@@ -40,7 +40,7 @@ The core classes of keras_dna are `Generator`, to feed the keras model with geno
 
 `Generator` creates batches of DNA sequences corresponding to the desired annotation.
 
-First example, a `Generator` instance that yields DNA sequences corresponding to a given genomical function (here binding site) as the positive class and other sequences as the negative class. The genome is furnished through a fasta file and the annotation is fournished with a gff file (could have been a bed), the DNA is one-hot-encoded, the genomical functions that we want to target need to be passed in a list.
+First example, a `Generator` instance that yields DNA sequences corresponding to a given genomical function (here binding site) as the positive class and other sequences as the negative class. The genome is furnished through a fasta file and the annotation is furnished with a gff file (could have been a bed), the DNA is one-hot-encoded, the genomical functions that we want to target need to be passed in a list.
 
 ```python
 from keras_dna import Generator
