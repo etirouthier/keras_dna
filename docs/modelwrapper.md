@@ -3,12 +3,12 @@
 
 ## Introduction
 
-`ModelWrapper` is a class designed to attach the keras model to its corresponding keras_dna `Generator`. It is especially useful to train, evaluate or make prediction with the model. The core arguments are:
+`ModelWrapper` is a class designed to attach the keras model to its corresponding keras_dna `Generator`. It is especially useful to train, evaluate or make predictions with the model. The core arguments are:
 
 - `model`: a compiled keras model
 - `generator_train`: a keras_dna generator restricted to the chromosomes one wants to train on.
 - `generator_val`: a keras_dna generator restricted to the chromosomes one wants to validate on. It must return data in the same shape as `generator_train`.
-- `validation_chr`: if `generator_val`is identical to `generator_train` except for the chromosomes included then just pass the validation chromosome with this keyword (no need to pass a `generator_val`).
+- `validation_chr`: if `generator_val` is identical to `generator_train` except for the chromosomes included then just pass the validation chromosome with this keyword (no need to pass a `generator_val`).
 - `weights_val`: set it to True if one wants to keep the same weighting mode in the `generator_val` as in `generator_train`, to False to disable weighting (default is False).
 
 Creating a `ModelWrapper`:
@@ -73,7 +73,7 @@ wrap = ModelWrapper(model=model,
 
 ## Training
 
-With the `ModelWrapper` instance in hand one can easily train the model with `.train()`, the only mandatory keyword is `epochs` to specify the number of epochs. One can also pass `steps_per_epoch` and `validation_steps`  but also all the available option accepted by the method `.fit_generator()` of a keras model.
+With the `ModelWrapper` instance in hand one can easily train the model with `.train()`, the only mandatory keyword is `epochs` to specify the number of epochs. One can also pass `steps_per_epoch` and `validation_steps`  but also all the available options accepted by the method `.fit_generator()` of a keras model.
 
 ```python
 ...
@@ -109,7 +109,7 @@ wrap.train(steps_per_epoch=500,
 
 ## Evaluating
 
-To evaluate the model on the desired chromosomes use `.evaluate()`. If generator_train is a `Generator` instance one needs to specify the chromosomes with the keyword `incl_chromosomes`. If generator_train is a `MultiGenerator` instance one needs to create a full generator and pass it with `generator_eval`. One can also pass keywords corresponding to the keras model method `.evaluate_generator()`.
+To evaluate the model on the desired chromosomes, use `.evaluate()`. If generator_train is a `Generator` instance one needs to specify the chromosomes with the keyword `incl_chromosomes`. If generator_train is a `MultiGenerator` instance one needs to create a full generator and pass it with `generator_eval`. One can also pass keywords corresponding to the keras model method `.evaluate_generator()`.
 
 
 Evaluation of a `Generator`:
@@ -180,9 +180,9 @@ wrap.evaluate(generator_eval=generator_eval)
 
 ## Predicting
 
-Use the `.predict()` to make some prediction with a `ModelWrapper`. One can choose the chromosomes on which to predict by specifying them with `incl_chromosomes` and by passing a file containing the chromosome length (in two tab separated columns, suffixe must be .chrom.sizes) in `chrom_size`. 
+Use the `.predict()` to make predictions with a `ModelWrapper`. One can choose the chromosomes on which to predict by specifying them with `incl_chromosomes` and by passing a file containing the chromosome length (in two tab separated columns, suffix must be .chrom.sizes) in `chrom_size`. 
 
-One can also predict on another species by passing a fasta file to `fasta_file`, `chrom_size` must correspond. This option is mandatory in the case of a `MultiGenerator`. Prediction are saved if `export_to_path` is specified (one file per annotation in one cell type, the format is bigWig).
+One can also predict on another species by passing a fasta file to `fasta_file`, with the corresponding `chrom_size`. This option is mandatory in the case of a `MultiGenerator`. Predictions are saved if `export_to_path` is specified (one file per annotation in one cell type, the format is bigWig).
 
 ```python
 ...
@@ -202,9 +202,9 @@ wrap.predict(incl_chromosomes=['chr1', 'chr2'],
              export_to_path='path/to/species2')
 ```
 
-**Note :** prediction are made on all the available data in the specified chromosome even for sparse data, in this case it displays the probability of a nucleotid to have a given function.
+**Note :** predictions are made on all the available data in the specified chromosome even for sparse data, in this case it displays the probability of a nucleotid to have a given function.
 
-If one wants to predict only on a region of a chromosome, one need to specify the begining and the end of the region by passing a tuple to the keyword `start_stop`. One needs to pass a list of tuple, one tuple per chromosome included.
+If one wants to predict only on a region of a chromosome, one need to specify the begining and the end of the region by passing a tuple to the keyword `start_stop`. One needs to pass a list of tuples, one tuple per chromosome included.
 
 
 ```python
@@ -221,7 +221,7 @@ wrap.predict(incl_chromosomes=['chr8', 'chr9'],
 
 ```
 
-Finally, the prediction can be made on the other strand of the DNA. One only need to set the keyword `rc` to True.
+Finally, the prediction can be made on the other strand of the DNA. One only needs to set the keyword `rc` to True.
 
 ```python
 ...
@@ -235,9 +235,9 @@ wrap.predict(incl_chromosomes=['chr8', 'chr9'],
 
 ## Saving
 
-To save a `ModelWrapper` use the method `.save()` with a path as argument. It creates a hdf5 file, the keras model is saved as usual and a dictionary describing how to reconstruct the `Generator` is saved.
+To save a `ModelWrapper` use the method `.save()` with a path as argument. It creates a hdf5 file, the keras model is saved as usual and a dictionary describing how to reconstruct the `Generator` is saved as well.
 
-Be aware of one subtleties, an usual keras callbacks is `ModelCheckpoint` that anables to save the best model obtained during the training, but the model continues to train after reaching its best. By saving the model after the training with the method `.save()` the best model will be overwritten by the last obtained. To avoid this fact set the keyword `save_model` to False (default behaviour).
+Be aware of one subtlety, a usual keras callback is `ModelCheckpoint` that enables saving the best model obtained during the training; but the model continues to train after reaching its best. By saving the model after the training with the method `.save()` the best model will be overwritten by the last obtained. To avoid this set the keyword `save_model` to False (default behaviour).
 
 ```python
 ...
@@ -281,9 +281,9 @@ from keras_dna.model import load_wrapper
 wrapper = load_wrapper(path_to_model)
 ```
 
-To reconstruct the model the data need to be present and organised as they were passed in `Generator`, so it limits the sharability of the model. The function `load_generator_command` returns a dictionary with the command needed to recreate both the train and val generator. The keras model needs to be loaded appart.
+To reconstruct the model the data need to be present and organised as they were passed in `Generator`, so it limits the shareability of the model. The function `load_generator_command` returns a dictionary with the command needed to recreate both the train and validation generators. The keras model needs to be loaded separately.
 
-Note: it can be used to retrained a model on new data, just change the inputs files.
+Note: it can be used to retrain a model on new data, just change the input files.
 
 ```python
 from keras_dna.model import load_generator_command
