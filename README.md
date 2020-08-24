@@ -29,7 +29,7 @@ Keras_dna is compatible with: __Python 3.6__.
 
 - Generating the DNA sequence corresponding to the desired annotation (can be sparse annotation or continuous), passed with standard bioinformatic files (gff, bed, bigWig, bedGraph).
 
-- Easily adapting to the type of annotation, their number, the number of different cell type or species.
+- Easily adapting to the type of annotations, their number, the number of different cell type or species.
 
 ------------------
 
