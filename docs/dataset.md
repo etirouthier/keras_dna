@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Dataset is used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one need to use them directly and this section shows how.
+Dataset is used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one needs to use them directly and this section shows how.
 
 There are two classes of dataset : 
 
