@@ -6,12 +6,12 @@
 
 ## Description:
 
-Keras_dna is an API that helps quick experimentation in applying deep learning to genomics. It enables to quickly feed a keras model (tensorflow) with genomic data without the need of laborious file convertions or storing tremendous amount of converted data. It reads the most commun bioinformatics files and create a generator adapted to a keras model.
+Keras_dna is an API that helps quick experimentation in applying deep learning to genomics. It enables quickly feeding a keras model (tensorflow) with genomic data without the need of laborious file convertions or storing tremendous amount of converted data. It reads the most common bioinformatics files and creates a generator adapted to the keras model.
 
 Use Keras_dna if you need a library that:
 
 - Allows fast usage of standard bioinformatic data to feed a keras model (nowaday standard for tensorflow).
-- Helps formatting the data to the model needs.
+- Helps formatting the data to the model's needs.
 - Facilitates the standard evaluation of a model with genomics data (correlation, AUPRC, AUROC)
 
 Keras_dna is compatible with: __Python 3.6__.
@@ -21,13 +21,13 @@ Keras_dna is compatible with: __Python 3.6__.
 
 ## Guiding principles:
 
-- Fournishing a simplified API to create generator of genomic data.
+- Furnishing a simplified API to create generators of genomic data.
 
 - Reading the DNA sequence directly and effectively in fasta file to discard the need of conversion.
 
 - Generating the DNA sequence corresponding to the desired annotation (can be sparse annotation or continuous), passed with standard bioinformatic files (gff, bed, bigWig, bedGraph).
 
-- Easily adapt to the type of annotation, their number, the number of different cell type or species.
+- Easily adapting to the type of annotation, their number, the number of different cell type or species.
 
 ------------------
 
@@ -36,7 +36,7 @@ Keras_dna is compatible with: __Python 3.6__.
 
 The core classes of keras_dna are `Generator`, to feed the keras model with genomical data, and `ModelWrapper` to attach a keras model to its keras_dna `Generator`.
 
-`Generator` creates batch of DNA sequences corresponding to the desired annotation.
+`Generator` creates batches of DNA sequences corresponding to the desired annotation.
 
 First example, a `Generator` instance that yields DNA sequences corresponding to a given genomical function (here binding site) as positive class and other sequences as negative class. The genome is fournished through a fasta file and the annotation is fournished with a gff file (could have been a bed), the DNA is one-hot-encoded, the genomical functions that we want to target need to be passed in a list.
 
