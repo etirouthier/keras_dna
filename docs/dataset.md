@@ -71,7 +71,7 @@ dataset = SeqIntervalDl(fasta_file='species.fa',
                         alphabet='AGCT')
 ```
 
-**Warning :** the default alphabet use [genomelake](https://github.com/kundajelab/genomelake) leads to an increase of performance.
+**Warning :** the default alphabet use as in [genomelake](https://github.com/kundajelab/genomelake) leads to an increase of performance.
 
 The type of the np.ndarray created can be chosen using the keyword `dtype`.
 
@@ -131,6 +131,6 @@ dataset = StringSeqIntervalDl(fasta_file='species.fa',
                               window=299)
 ```
 
-Use the class method `predict_label_shape` and `predict_sec_input_shape` to predict the corresponding shape before creating an instance.
+Use the class methods `predict_label_shape` and `predict_sec_input_shape` to predict the corresponding shape before creating an instance.
 
 --------------------------------
