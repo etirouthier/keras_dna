@@ -2,16 +2,16 @@
 
 ## Introduction
 
-Dataset are used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one need to use them directly and this section shows how.
+Dataset is used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one need to use them directly and this section shows how.
 
 There are two classes of dataset : 
 
-- `SeqIntervalDl`: used to generate batch of one-hot-encoded DNA sequence.
-- `StringSeqIntervalDl`: used to generate batch of DNA sequence as string.
+- `SeqIntervalDl`: used to generate batches of one-hot-encoded DNA sequences.
+- `StringSeqIntervalDl`: used to generate batches of DNA sequences as strings.
 
 ## SeqIntervalDl
 
-The `SeqIntervalDl` owns the same keyword as the `Generator` class except `batch_size`, `one-hot-encoding`, `output_shape`, `weighting_mode` and `bins`.
+The `SeqIntervalDl` owns the same keywords as the `Generator` class except `batch_size`, `one-hot-encoding`, `output_shape`, `weighting_mode` and `bins`.
 
 
 Creating a `SeqIntervalDl` instance:
@@ -71,7 +71,7 @@ dataset = SeqIntervalDl(fasta_file='species.fa',
                         alphabet='AGCT')
 ```
 
-**Warning :** the default alphabet use [genomelake](https://github.com/kundajelab/genomelake) leading to an increase of performance.
+**Warning :** the default alphabet use [genomelake](https://github.com/kundajelab/genomelake) leads to an increase of performance.
 
 The type of the np.ndarray created can be chosen using the keyword `dtype`.
 
