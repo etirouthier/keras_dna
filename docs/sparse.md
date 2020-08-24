@@ -14,14 +14,14 @@ generator = Generator(batch_size=64,
                       annotation_list=['binding site'])
 ```
 
-The default behaviour is to generate the DNA sequences at the position of the desired function one-hot-encoded and with a length corresponding to the maximal length encountered (one window per genomical function occurence). It simultaneously yields the same amounts of background DNA sequences as negative example. 
+The default behaviour is to generate the DNA sequences at the position of the desired function, as one-hot-encoded and with a length corresponding to the maximal length encountered (one window per genomical function occurence). It simultaneously yields the same amounts of background DNA sequences as negative examples. 
 
 The one-hot-encoded DNA batches have the shape `(batch_size, max length, 4)`. The labels are 0 or 1 with the shape `(batch_size, nb anotation files, len(annotation_list))`, i.e here `(64, 1, 1)`.
 
 
 ## Model for several cell types and annotations
 
-`Generator` can be used to classify between different functions in different cell types. The genome is passed through a fasta file and the positions of genomical functions are given through one gff file per cell type. The gff format is needed to provide the position of several different functions in one file, bed format is not adapted to do so.
+`Generator` can be used to classify between different functions in different cell types. The genome is passed through as a fasta file and the positions of genomical functions are given through as one gff file per cell type. The gff format is needed to provide the positions of several different functions in one file, bed format is not adapted to do so.
 
 ```python
 from keras_dna import Generator
@@ -64,9 +64,9 @@ generator = Generator(batch_size=64,
                       seq_len='real')
 ```
 
-## Predicting the begining or end
+## Predicting the begining or the end
 
-It is sometimes needed to predict the position of the beginning or of the end of an annotation. For exemple to predict the TSS, starts of exons, or their ends. To do so `Generator` owns the keyword `predict`.
+It is sometimes desired to predict the position of the beginning or of the end of an annotation. For exemple, to predict the TSS, starts of exons, or their ends. To do so `Generator` owns the keyword `predict`.
 
 ```python
 from keras_dna import Generator
@@ -95,7 +95,7 @@ generator = Generator(batch_size=64,
  
 ## Data Augmentation
  
-Usually, the number of backgroud sequence in a genome is far greater than the number of occurence of a given genomical function. This fact leads to unbalanced dataset with fewer positive exemples if one keeps the natural distribution. To mitigate this fact the number of positive exemples can be multiplied by a data augmentation procedure: all the windows containing a whole function occurence are labeled as positive (if the input window is longer than a function occurence  several window are generated per occurence). This functionnality is available through the keyword `data_augmentation`:
+Usually, the number of backgroud sequences in a genome is far greater than the number of occurences of a given genomical function. This fact leads to unbalanced datasets with fewer positive exemples if one keeps the natural distribution. To mitigate this fact the number of positive examples can be multiplied by a data augmentation procedure: all the windows containing a whole function occurence are labeled as positive (if the input window is longer than a function occurence,  several windows are generated per occurence). This functionality is available through the keyword `data_augmentation`:
  
 ```python
 from keras_dna import Generator
@@ -108,7 +108,7 @@ generator = Generator(batch_size=64,
                       data_augmentation=True)
 ```
   
-**Warning :** This functionnality multiplies the number of instance and can be slow to implement...
+**Warning :** This functionnality multiplies the number of instances and can be slow to implement...
   
 ## Seq2Seq model
 
@@ -127,11 +127,11 @@ generator = Generator(batch_size=64,
 
 The labels shape is `(batch_size, seq_len, nb cell type, nb annotation)`
 
-**Warning :** This functionnality combines with data_augmentation may take a while ...
+**Warning :** This functionality combines with data_augmentation and may take a while ...
 
 ## Positive definition
 
-In the case of a model classifying between several functions, the same window can be positively labeled for more than one function. Use the keyword `define_positive` to change the definition of a positive label: either a positive sequence needs to contain a function occurence as a whole or just any part of a function occurence. Note that it does not mean that a data_augmentation will be applied.
+In the case of a model classifying between several functions, the same window can be positively labeled for more than one function. Use the keyword `define_positive` to change the definition of a positive label: either a positive sequence needs to contain a function occurence as a whole, or just any part of a function occurence. Note that it does not mean that a data_augmentation will be applied.
 
 ```python
 from keras_dna import Generator
@@ -153,7 +153,7 @@ generator = Generator(batch_size=64,
 
 ## Negative / Positive ratio
 
-One can change the negative / positive ratio by using the keyword `negative_ratio` which is by default set to 1. A positive example contains at least one occurence of one of the desired function while a negative sample if far away from any of the desired function occurences.
+One can change the negative / positive ratio by using the keyword `negative_ratio` which is by default set to 1. A positive example contains at least one occurence of one of the desired functions while a negative sample is far away from any of the desired functions' occurences.
 
 ```python
 from keras_dna import Generator
@@ -175,7 +175,7 @@ generator = Generator(batch_size=64,
 
 ## Negative examples
 
-Negative examples can either be ignored, be random sequences or be real DNA sequences away from any of the desired functions occurences. Use the keyword `negative_type` to select the desired behaviour.
+Negative examples can either be ignored, be random sequences or be real DNA sequences away from any of the desired functions' occurences. Use the keyword `negative_type` to select the desired behaviour.
 
 ```python
 from keras_dna import Generator
@@ -204,7 +204,7 @@ generator = Generator(batch_size=64,
 
 ## Using the strand of the example
 
-If the annotation files precise the strand for every genomical function then by setting the keyword `use_strand` to True, the `Generator` will reverse complement the example known to be in the backward strand. This may be useful for the model to read the DNA sequence as the cell machinery.
+If the annotation files precise the strand for every genomical function, then by setting the keyword `use_strand` to `True`, the `Generator` will reverse complement the example known to be in the backward strand. This may be useful for the model to read the DNA sequence as the cell machinery.
 
 ```python
 from keras_dna import Generator
