@@ -10,7 +10,7 @@ Keras_dna is an API that helps quick experimentation in applying deep learning t
 
 Use Keras_dna if you need a library that:
 
-- Allows fast usage of standard bioinformatic data to feed a keras model (nowaday standard for tensorflow).
+- Allows fast usage of standard bioinformatic data to feed a keras model (nowadays standard for tensorflow).
 - Helps formatting the data to the model's needs.
 - Facilitates the standard evaluation of a model with genomics data (correlation, AUPRC, AUROC)
 
