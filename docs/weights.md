@@ -2,7 +2,7 @@
 
 ## Introduction
 
-To handle unbalanced dataset it is useful to add weights to training examples. The module `Generator` owns a way to do so (but not the module `MultiGenerator`).
+To handle unbalanced datasets it is useful to add weights to training examples. The module `Generator` owns a way to do so (but not the module `MultiGenerator`).
 
 ```python
 from keras_dna import Generator
@@ -15,7 +15,7 @@ generator = Generator(batch_size=64,
 
 ## Regression
 
-For regression problem there are three different ways to set the weights:
+For regression problems there are three different ways to set the weights:
 
 Automatically find bins to calculate the histogram and set the weights to have a balanced dataset:
 ```python
@@ -38,7 +38,7 @@ generator = Generator(batch_size=64,
                       bins=100)
 ```
 
-Passing both bins and weights that one wants to apply for the training. It should be a tuples `([bins_ann1, bins_ann2, ..., bins_annN], [weights_ann1, weights_ann2, ..., weights_annN])` with weights_ann1 being a list of weights to apply to the values from ann1.bw and bins_ann1 the corresponding bins (`len(weights_ann1) = len(bins_ann1) - 1`)
+Passing both bins and weights that one wants to apply for the training. It should be a tuple `([bins_ann1, bins_ann2, ..., bins_annN], [weights_ann1, weights_ann2, ..., weights_annN])` with weights_ann1 being a list of weights to apply to the values from ann1.bw and bins_ann1 the corresponding bins (`len(weights_ann1) = len(bins_ann1) - 1`)
 ```python
 from keras_dna import Generator
 
@@ -50,11 +50,11 @@ generator = Generator(batch_size=64,
                                        [[0.5, 2, 3, 4], [0.1, 1, 2, 4]])
 ```
 
-**Warning :** to use weights with for a regression task one needs to compile the model setting `sample_weight_mode` to 'temporal'.
+**Warning :** to use weights for a regression task one needs to compile the model setting `sample_weight_mode` to 'temporal'.
 
 ## Classification
 
-For classification one considers the positive class to be all traning examples labelled positively for at least one function in one cellular type, and the negative class all training examples negatively labelled for all functions in all cellular type. Weights can automatically be set weights to balance the positive and negative class or be set manually through a tuple `(weights_positive, weights_negative)`. Note that for automatical setting of weights, the positive-negative distribution is the one of the training examples not of the genome.
+For classification one considers the positive class to be all traning examples labelled positively for at least one function in one cellular type, and the negative class all training examples labelled negatively for all functions in all cellular type. Weights can be set automatically to balance the positive and negative class or be set manually through a tuple `(weights_positive, weights_negative)`. Note that for automatic setting of weights, the positive-negative distribution is the one of the training examples, not of the genome.
 
 ```python
 

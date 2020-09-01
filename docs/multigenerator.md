@@ -2,11 +2,11 @@
 
 ## Introduction
 
-`MultiGenerator` is a class useful to train a model on several species at the same time or on both the positive and negative strand of the genome. It uses several datasets ([Dataset](dataset.md)) to generate batches of data that mix data coming from every dataset.
+`MultiGenerator` is a class useful to train a model on several species at the same time or on both the positive and negative strands of the genome. It uses several datasets ([Dataset](dataset.md)) to generate batches of data that mix data coming from each dataset.
 
 ## Creating an instance
 
-To create an instance of `MutliGenerator`,  create firstly the datasets involved and ensure that the shape of their inputs and their labels are all the same. The mandatory arguments are `batch_size` and `dataset_list`.
+To create an instance of `MutliGenerator`,  create first the datasets involved and ensure that the shape of their inputs and their labels are all the same. The mandatory arguments are `batch_size` and `dataset_list`.
 
 ```python
 from keras_dna import SeqIntervalDl, MultiGenerator
@@ -28,11 +28,11 @@ generator = MultiGenerator(batch_size=64,
 
 ## Changing labels shape
 
-Use the keyword `output_shape` to readapt the labels shape to your need (same principle as in [Generator](generators.md)).
+Use the keyword `output_shape` to readapt the labels' shape to your need (same principle as in [Generator](generators.md)).
 
-## Changing the number of instance per dataset
+## Changing the number of instances per dataset
 
-To control the number of instance per dataset that the generator yields, use the keyword `inst_per_dataset`. The number of instance per dataset is passed through a list in the same order as the datasets in `dataset_list`. The default behaviour is to generate all the data available (which can leads to a bias toward one species).
+To control the number of instances per dataset that the generator yields, use the keyword `inst_per_dataset`. The number of instances per dataset is passed through a list in the same order as the datasets in `dataset_list`. The default behaviour is to generate all the data available (which can leads to a bias toward one species).
 
 ```python
 from keras_dna import SeqIntervalDl, MultiGenerator

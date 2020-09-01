@@ -2,16 +2,16 @@
 
 ## Introduction
 
-Dataset are used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one need to use them directly and this section shows how.
+Dataset is used by `Generator` to process the data, in the particular case of a `MultiGenerator` (see [MultiGenerator](multigenerator.md)) one needs to use it directly and this section shows how.
 
 There are two classes of dataset : 
 
-- `SeqIntervalDl`: used to generate batch of one-hot-encoded DNA sequence.
-- `StringSeqIntervalDl`: used to generate batch of DNA sequence as string.
+- `SeqIntervalDl`: used to generate batches of one-hot-encoded DNA sequences.
+- `StringSeqIntervalDl`: used to generate batches of DNA sequences as strings.
 
 ## SeqIntervalDl
 
-The `SeqIntervalDl` owns the same keyword as the `Generator` class except `batch_size`, `one-hot-encoding`, `output_shape`, `weighting_mode` and `bins`.
+The `SeqIntervalDl` owns the same keywords as the `Generator` class except `batch_size`, `one-hot-encoding`, `output_shape`, `weighting_mode` and `bins`.
 
 
 Creating a `SeqIntervalDl` instance:
@@ -71,7 +71,7 @@ dataset = SeqIntervalDl(fasta_file='species.fa',
                         alphabet='AGCT')
 ```
 
-**Warning :** the default alphabet use [genomelake](https://github.com/kundajelab/genomelake) leading to an increase of performance.
+**Warning :** the default alphabet use as in [genomelake](https://github.com/kundajelab/genomelake) leads to an increase of performance.
 
 The type of the np.ndarray created can be chosen using the keyword `dtype`.
 
@@ -114,7 +114,7 @@ Use the class methods `predict_input_shape`, `predict_label_shape` and `predict_
 ## StringSeqIntervalDl
 
 
-The `StringSeqIntervalDl` owns the same keyword as the `SeqIntervalDl` class except `dummy_axis`, `alphabet_axis`, `alphabet` and `dtype`. 
+The `StringSeqIntervalDl` owns the same keywords as the `SeqIntervalDl` class except `dummy_axis`, `alphabet_axis`, `alphabet` and `dtype`. 
 
 Creating a `StringSeqIntervalDl` instance:
 ```python
@@ -131,6 +131,6 @@ dataset = StringSeqIntervalDl(fasta_file='species.fa',
                               window=299)
 ```
 
-Use the class method `predict_label_shape` and `predict_sec_input_shape` to predict the corresponding shape before creating an instance.
+Use the class methods `predict_label_shape` and `predict_sec_input_shape` to predict the corresponding shape before creating an instance.
 
 --------------------------------
