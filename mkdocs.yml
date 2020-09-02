@@ -14,5 +14,7 @@ nav:
         - Other:
                 - Normalization: normalization.md
                 - Weights: weights.md
+        - Case study:
+                - Case study: case_study.md
 theme: readthedocs
 site_favicon: favicon.ico
