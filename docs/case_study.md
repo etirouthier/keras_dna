@@ -2,7 +2,7 @@
 
 ## Tutorial
 
-A [Tutorial](https://github.com/etirouthier/keras_dna/blob/master/Tutorial.ipynb) with some toy examples is available to practise the usage of keras_dna.
+A [Tutorial](https://github.com/etirouthier/keras_dna/blob/master/Tutorial.ipynb) with some toy examples is available to learn how to use keras_dna.
 
 ## Negative to positive ratio - cross-species prediction
 
