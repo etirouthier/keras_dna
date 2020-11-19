@@ -13,10 +13,12 @@ import numpy as np
 from functools import partial
 
 
-from tensorflow.keras.models import load_model, clone_model
+from tensorflow.keras.models import load_model, clone_model, model_from_config
 from tensorflow.keras.models import Model
 from tensorflow.keras import Input
 from tensorflow.keras.metrics import AUC
+from tensorflow.keras.callbacks import EarlyStopping
+import tensorflow.keras as keras
 
 
 from .generators import Generator, MultiGenerator, PredictionGenerator
@@ -24,6 +26,8 @@ from .sequence import SeqIntervalDl, StringSeqIntervalDl
 from .evaluation import correlate
 from .layers import Project1D
 from .keras_utils import H5Dict
+from .hyperparams import update_sweep_config, change_config, create_default
+from .kernel_analysis import create_first_layer_model, find_pfm, export_to_meme, create_logos
     
 
 class ModelWrapper(object):
@@ -194,6 +198,145 @@ class ModelWrapper(object):
                                                     *args,
                                                     **kwargs)
         return evaluations
+    
+    def get_hyperparams(self,
+                        method,
+                        metric,
+                        goal,
+                        wandb_user_name,
+                        wandb_project_name,
+                        steps_per_epoch=None,
+                        validation_steps=None,
+                        test_optimizer=True,
+                        test_initializer=True,
+                        test_constraint=True,
+                        test_regularizer=True,
+                        test_activation=True,
+                        test_dilation=True,
+                        test_maxpooling=True):
+        """Function usefull to optimize hyperparameters of a model. The architecture can not
+        be modified but the hyperparameters in the model are optimized. It uses wandb to perform
+        the hyperparameters tracking so an account is needed and the project needs to be created.
+        
+        Warning: wandb can cause problems on jupyter notebook as it needs to interact with the 
+        user."""
+        assert hasattr(self, 'generator_val'),\
+        """Validation data must be specified to optimize hyperparameters"""
+
+        import wandb
+        from wandb.keras import WandbCallback
+
+        config = self.model.to_json()
+        config = json.loads(config)
+
+        if test_optimizer:
+            parameters = {'optimizer' : {'values' : ['adam',
+                                                     'rmsprop',
+                                                     'nadam',
+                                                     'sgd',
+                                                     'adadelta',
+                                                     'adagrad',
+                                                     'adamax']}}
+        else:
+            parameters = {}
+
+        sweep_config = {'method' : method,
+                        'metric' : {'name' : metric,
+                                    'goal' : goal},
+                        'parameters' :  parameters}
+        self.sweep_config = update_sweep_config(config,
+                                                sweep_config,
+                                                test_initializer,
+                                                test_constraint,
+                                                test_regularizer,
+                                                test_activation,
+                                                test_dilation,
+                                                test_maxpooling)
+        self.sweep_id = wandb.sweep(self.sweep_config,
+                                    entity=wandb_user_name,
+                                    project=wandb_project_name)
+        if not steps_per_epoch:
+                steps_per_epoch = len(self.generator_train)
+
+        if not validation_steps:
+            validation_steps = len(self.generator_val)
+
+        def train_function():
+            config_defaults = create_default(self.sweep_config)
+            wandb.init(config=config_defaults)
+    
+            change_config(config, wandb.config)
+            local_model = model_from_config(config)
+    
+            if test_optimizer:
+                optimizer = wandb.config['optimizer']
+            else:
+                optimizer = self.model.optimizer
+
+            local_model.compile(optimizer=optimizer,
+                                loss=self.model.loss,
+                                metrics=self.model.metrics)
+
+            early = EarlyStopping(monitor='val_loss',
+                                  min_delta=0,
+                                  patience=5,
+                                  verbose=0,
+                                  mode='auto')
+
+            local_model.fit_generator(generator=self.generator_train(),
+                                      steps_per_epoch=steps_per_epoch, 
+                                      epochs=100,
+                                      validation_data=self.generator_val(), 
+                                      validation_steps=validation_steps, 
+                                      callbacks=[WandbCallback(), early])
+
+        wandb.agent(self.sweep_id, function=train_function)
+        
+    def first_layer_analysis(self,
+                             test_chr=None,
+                             generator_test=None,
+                             threshold=0.5,
+                             meme_output=None,
+                             normalize_output=True):
+        """
+        Return the motif logos corresponding to the first layer of the model (if convolutional).
+        It is normalized as an information gain matrices. The result can also be exported in a 
+        format compatible with MEME requirement (as a PFM).
+        """
+        assert isinstance(self.model.layers[0], keras.layers.Conv1D) or\
+        isinstance(self.model.layers[0], keras.layers.Conv2D),\
+        """The model must begin with a convolutional layer to study the first filters logos"""
+
+        assert hasattr(self.generator_train.dataset, 'seq_dl'),\
+        """The generator must yield one-hot-encoded sequences."""
+
+        if generator_test:
+            self._verify_compatibility(generator_test)
+        elif test_chr:
+            command_dict = deepcopy(self.generator_train.command_dict.as_input())
+            command_dict['incl_chromosomes'] = test_chr
+
+            if hasattr(self.generator_train.dataset.seq_dl.dataset, 'negative_type'):
+                command_dict['negative_type'] = None
+
+            command_dict['weighting_mode'] = None
+            generator_test = Generator(**command_dict)
+
+        first_layer_model = create_first_layer_model(self.model)
+        pfms = find_pfm(generator_test, first_layer_model, threshold)
+
+        if meme_output:
+            alphabet = 'ACGT'
+
+            if 'alphabet' in command_dict:
+                alphabet = ''.join(letter for letter in command_dict['alphabet'])
+
+            export_to_meme(pfms, meme_output, alphabet)
+
+        if normalize_output:
+            return create_logos(pfms)
+        else:
+            return pfms
 
     def get_auc(self,
                 incl_chromosomes,
