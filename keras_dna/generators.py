@@ -139,9 +139,9 @@ class Generator(object):
     @property
     def secondary_input_shape(self):
         try:
-            return self.dataset.secondary_input_shape
+            return tuple(self.dataset.secondary_input_shape)
         except AttributeError:
-            return self.dataset.seq_dl.secondary_input
+            return tuple(self.dataset.seq_dl.secondary_input)
     
     @classmethod
     def predict_label_shape(cls, **input_dict):
@@ -166,9 +166,9 @@ class Generator(object):
         command_dict = self.command_dict.as_input()
 
         if command_dict['output_shape']:
-            return command_dict['output_shape'][1:]
+            return tuple(command_dict['output_shape'][1:])
         else:
-            return self.dataset.label_shape
+            return tuple(self.dataset.label_shape)
 
     @classmethod
     def predict_input_shape(cls, **input_dict):
@@ -185,7 +185,7 @@ class Generator(object):
         command_dict = self.command_dict.as_input()
 
         if command_dict['one_hot_encoding']:
-            return self.dataset.input_shape
+            return tuple(self.dataset.input_shape)
         else:
             return None
 
