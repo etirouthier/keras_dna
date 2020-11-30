@@ -11,6 +11,7 @@ import pandas as pd
 import pyBigWig
 import os
 import inspect
+from distutils.spawn import find_executable
 
 def get_default_args(func):
     signature = inspect.signature(func)
@@ -86,13 +87,47 @@ def gff_to_df(gff_file, annotation_list):
                            'label': labels})
     return df
 
-def bedGraph_to_df(bedGraph, chrom_size):
-    os.system('ucsc-utils/bedGraphToBigWig ' + bedGraph + \
-              ' ' + chrom_size + ' ' + bedGraph[:-8] + 'bw')
+def bedGraph_to_df(bedGraph, chrom_size, path=None):
+    assert find_executable('bedGraphToBigWig')\
+    or find_executable(os.path.join(path, 'bedGraphToBigWig')),\
+    '''bedGraphToBigWig is not available to use wig files.
+    If you are using a conda environment you can download it by running :
 
-def wig_to_df(wig, chrom_size):
-    os.system('ucsc-utils/wigToBigWig ' + wig + \
+    conda install -c bioconda ucsc-bedgraphtobigwig.
+
+    Otherwise run keras_dna.get_ucsc in a terminal to download it from UCSC.
+    After that you will need to specify the path to the directory where you
+    install the script with the keyword path_to_ucsc.'''
+    if path:
+        output = os.system(path + '/bedGraphToBigWig ' + wig + \
               ' ' + chrom_size + ' ' + wig[:-3] + 'bw')
+    else:
+         output = os.system('bedGraphToBigWig ' + wig + \
+                  ' ' + chrom_size + ' ' + wig[:-3] + 'bw')
+    
+    if output != 0:
+        print("An error has occured. Returned os error code {}".format(output))
+
+def wig_to_df(wig, chrom_size, path=None):
+    assert find_executable('wigToBigWig')\
+    or find_executable(os.path.join(path, 'wigToBigWig')),\
+    '''wigToBigWig is not available to use wig files.
+    If you are using a conda environment you can download it by running :
+
+    conda install -c bioconda ucsc-wigtobigwig.
+
+    Otherwise run keras_dna.get_ucsc in a terminal to download it from UCSC.
+    After that you will need to specify the path to the directory where you
+    install the script with the keyword path_to_ucsc.'''
+    if path:
+         output = os.system(path + '/wigToBigWig ' + wig + \
+              ' ' + chrom_size + ' ' + wig[:-3] + 'bw')
+    else:
+         output = os.system('wigToBigWig ' + wig + \
+                  ' ' + chrom_size + ' ' + wig[:-3] + 'bw')
+    
+    if output != 0:
+        print("An error has occured. Returned os error code {}".format(output))
 
 def bbi_extractor(interval, bbi_files, final_dummy_axis=False):
     """

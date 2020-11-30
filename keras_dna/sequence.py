@@ -750,6 +750,10 @@ class ContinuousDataset(object):
             A file with the chromosome name and size usefull to convert wig
             and bedGraph to bigwig.
             default= None
+        path_to_ucsc:
+            The path to the ucsc utils (wigToBigWig and bedGraphToBigWig) to
+            give if those functionality can not be downloaded with conda.
+            default=None
     """
     def __init__(self, annotation_files,
                        window,
@@ -763,7 +767,8 @@ class ContinuousDataset(object):
                        excl_chromosomes=None,
                        start_stop=None,
                        ignore_targets=False,
-                       size=None):
+                       size=None,
+                       path_to_ucsc=None):
         
         self.annotation_files = annotation_files
         self.nb_annotation_type = nb_annotation_type
@@ -780,6 +785,7 @@ class ContinuousDataset(object):
         self.ignore_targets = ignore_targets
         self.df = pd.DataFrame()
         self.size = size
+        self.path_to_ucsc = path_to_ucsc
         self.frame = inspect.currentframe()
 
         # converting to list type to consistancy with the case of multi-outputs
@@ -792,13 +798,17 @@ class ContinuousDataset(object):
                 assert self.size is not None,\
                 '''To use wig file a file with the chromosome size must be
                 parsed a size'''
-                utils.wig_to_df(annotation_file, self.size)
+                utils.wig_to_df(annotation_file,
+                                self.size,
+                                self.path_to_ucsc)
                 self.annotation_files[idx] = annotation_file[:-3] + 'bw'
             if annotation_file.endswith('.bedGraph'):
                 assert self.size is not None,\
                 '''To use bedGraph file a file with the chromosome size must be
                 parsed a size'''
-                utils.bedGraph_to_df(annotation_file, self.size)
+                utils.bedGraph_to_df(annotation_file,
+                                     self.size,
+                                     self.path_to_ucsc)
                 self.annotation_files[idx] = annotation_file[:-8] + 'bw'
 
         if self.annotation_files[0].endswith(('.wig', '.bw', 'bedGraph')):
