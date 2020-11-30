@@ -98,12 +98,14 @@ def bedGraph_to_df(bedGraph, chrom_size, path=None):
     Otherwise run keras_dna.get_ucsc in a terminal to download it from UCSC.
     After that you will need to specify the path to the directory where you
     install the script with the keyword path_to_ucsc.'''
+    assert os.path.exists(bedGraph),\
+    """The bedGraph file {} does not exists""".format(bedGraph)
     if path:
-        output = os.system(path + '/bedGraphToBigWig ' + wig + \
-              ' ' + chrom_size + ' ' + wig[:-3] + 'bw')
+        output = os.system(path + '/bedGraphToBigWig ' + bedGraph + \
+              ' ' + chrom_size + ' ' + bedGraph[:-8] + 'bw')
     else:
-         output = os.system('bedGraphToBigWig ' + wig + \
-                  ' ' + chrom_size + ' ' + wig[:-3] + 'bw')
+         output = os.system('bedGraphToBigWig ' + bedGraph + \
+                  ' ' + chrom_size + ' ' + bedGraph[:-8] + 'bw')
     
     if output != 0:
         print("An error has occured. Returned os error code {}".format(output))
@@ -119,6 +121,8 @@ def wig_to_df(wig, chrom_size, path=None):
     Otherwise run keras_dna.get_ucsc in a terminal to download it from UCSC.
     After that you will need to specify the path to the directory where you
     install the script with the keyword path_to_ucsc.'''
+    assert os.path.exists(wig),\
+    """The wig file {} does not exists""".format(wig)
     if path:
          output = os.system(path + '/wigToBigWig ' + wig + \
               ' ' + chrom_size + ' ' + wig[:-3] + 'bw')
