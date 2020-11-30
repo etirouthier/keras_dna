@@ -15,7 +15,7 @@ from .generators import Generator, MultiGenerator
 from .model import ModelWrapper
 from .sequence import SeqIntervalDl, StringSeqIntervalDl
 
-__version__ = '0.0.19'
+__version__ = '0.0.20'
 
 
 def get_ucsc():
