@@ -297,7 +297,8 @@ class ModelWrapper(object):
                              generator_test=None,
                              threshold=0.5,
                              meme_output=None,
-                             normalize_output=True):
+                             normalize_output=True,
+                             layer='first_layer'):
         """
         Return the motif logos corresponding to the first layer of the model (if convolutional).
         It is normalized as an information gain matrices. The result can also be exported in a 
@@ -322,8 +323,12 @@ class ModelWrapper(object):
             command_dict['weighting_mode'] = None
             generator_test = Generator(**command_dict)
 
-        first_layer_model = create_first_layer_model(self.model)
-        pfms = find_pfm(generator_test, first_layer_model, threshold)
+        first_layer_model, pool_size = create_first_layer_model(self.model, layer)
+        pfms = find_pfm(generator_test,
+                        first_layer_model,
+                        pool_size,
+                        threshold,
+                        layer)
 
         if meme_output:
             alphabet = 'ACGT'
