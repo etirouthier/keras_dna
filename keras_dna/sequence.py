@@ -77,10 +77,10 @@ class SparseDataset(object):
             'all' means that all the negative example are returned.
             default=1
         negative_type:
-            {'real', 'random', None} if real the negative example will be taken
-            from sequences far enough from any annotation example. If None this
+            {'real', 'random', bedfile, None} if real the negative example will be
+            taken from sequences far enough from any annotation example. If None this
             function will return only positive example, 'random' will return 
-            interval of length 0.
+            interval of length 0. Pass a bedfile to precisely set the negative examples.
             default='real'
     """
     def __init__(self, annotation_files,
@@ -167,6 +167,13 @@ class SparseDataset(object):
 
         elif self.negative_type == 'real':
             neg_df, neg_label = self._negative_class()
+            self.df = self.df.append(neg_df)
+
+            if not self.ignore_targets:
+                self.labels = np.append(self.labels, neg_label, axis=0)
+
+        elif self.negative_type.endswith('.bed'):
+            neg_df, neg_label = self._negative_bed()
             self.df = self.df.append(neg_df)
 
             if not self.ignore_targets:
@@ -466,6 +473,36 @@ class SparseDataset(object):
                                 nb_types,
                                 nb_labels))
 
+        return neg_df, labels
+    
+    def _negative_bed(self):
+        neg_df = utils.bed_to_df(self.negative_type, [0])
+
+        assert (neg_df.stop.values - neg_df.start.values == self.length).all(),\
+        """The negative examples must be of the same length as the positive one"""
+        
+        neg_df['type'] = 0
+        
+        if hasattr(self.ann_df, 'strand'):
+            assert hasattr(neg_df, 'strand'),\
+            """Strand is specifies for positive class and must be specified for
+            the negative class as well"""
+        else:
+            assert not hasattr(neg_df, 'strand'),\
+            """Strand is NOT specifies for positive class and must NOT be specified
+            for the negative class neither"""
+        nb_types = len(self.ann_df.type.unique())
+        nb_labels = len(self.ann_df.label.unique())
+
+        if self.seq2seq:
+            labels = np.zeros((len(neg_df),
+                                self.length,
+                                nb_types,
+                                nb_labels))
+        else:
+            labels = np.zeros((len(neg_df),
+                                nb_types,
+                                nb_labels))
         return neg_df, labels
 
     def _get_translation_dico(self):

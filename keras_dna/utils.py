@@ -29,9 +29,12 @@ def bed_to_df(bedfile, annotation_list):
     annotation."""
     
     chroms, starts, stops, labels = [], [], [], []
+    strands = None
+
     if hasattr(bedfile[0], 'strand'):
-        strands = []
-    
+        if bedfile[0].strand in ['+', '-']:
+            strands = []
+
     for bed in bedfile:
         chroms.append(bed.chrom)
         starts.append(bed.start)
@@ -39,7 +42,8 @@ def bed_to_df(bedfile, annotation_list):
         labels.append(annotation_list[0])
 
         if hasattr(bed, 'strand'):
-            strands.append(bed.strand)
+            if bed.strand in ['+', '-']:
+                strands.append(bed.strand)
     
     if strands:
         df = pd.DataFrame({'chrom': chroms,
