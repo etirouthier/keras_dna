@@ -187,9 +187,11 @@ class Weights(object):
             try:
                 chrom_size = dataset.dataset.chrom_size
                 norm_dico = dataset.dataset.extractor.norm_dico
+                self.tg_window = dataset.dataset.tg_window
             except AttributeError:
                 chrom_size = dataset.seq_dl.dataset.chrom_size
                 norm_dico = dataset.seq_dl.dataset.extractor.norm_dico
+                self.tg_window = dataset.seq_dl.dataset.tg_window
 
             samples = list()
             annotation_files = self.command_dict['keras_dna.sequence.ContinuousDataset']['annotation_files']
@@ -261,7 +263,13 @@ class Weights(object):
                                    seq.shape[2] * seq.shape[3]))
             elif len(seq.shape) == 2:
                 temporal = False
-                seq = np.expand_dims(seq, 1)
+                if seq.shape[1] == len(self.list_bins):
+                    seq = np.expand_dims(seq, 1)
+                elif seq.shape[1] == self.tg_window:
+                    seq = np.expand_dims(seq, 2)
+                else:
+                    raise(ValueError("""The label are reshaped in a manner that
+                    is not supported by 'balanced' keyword"""))
 
             outputs = np.zeros(seq.shape)
 
