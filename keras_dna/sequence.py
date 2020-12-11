@@ -477,6 +477,8 @@ class SparseDataset(object):
     
     def _negative_bed(self):
         neg_df = utils.bed_to_df(self.negative_type, [0])
+        incl_chromosomes = self.ann_df.chrom.unique()
+        neg_df = neg_df[neg_df.chrom.isin(incl_chromosomes)]
 
         assert (neg_df.stop.values - neg_df.start.values == self.length).all(),\
         """The negative examples must be of the same length as the positive one"""
