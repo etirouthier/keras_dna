@@ -235,7 +235,7 @@ class Weights(object):
                 and len(weighting_mode[1]) == len(annotation_files),\
                 """Weights and bins must be parsed for every annotation_files"""
 
-                assert len(weighting_mode[0][0]) == len(weighting_mode[1][0]) + 1,\
+                assert len(weighting_mode[0][0]) == len(weighting_mode[1][0]) - 1,\
                 """len(bins) must be equal to len(weights) + 1 !"""
 
                 self.weights = [weight for weight in weighting_mode[1]]
