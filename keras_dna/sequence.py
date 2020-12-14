@@ -172,6 +172,9 @@ class SparseDataset(object):
             if not self.ignore_targets:
                 self.labels = np.append(self.labels, neg_label, axis=0)
 
+        elif not self.negative_type:
+            pass
+
         elif self.negative_type.endswith('.bed'):
             neg_df, neg_label = self._negative_bed()
             self.df = self.df.append(neg_df)
