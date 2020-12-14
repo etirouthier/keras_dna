@@ -262,8 +262,8 @@ class Weights(object):
                                    seq.shape[1],
                                    seq.shape[2] * seq.shape[3]))
             elif len(seq.shape) == 2:
-                temporal = False
                 if seq.shape[1] == len(self.list_bins):
+                    temporal = False
                     seq = np.expand_dims(seq, 1)
                 elif seq.shape[1] == self.tg_window:
                     seq = np.expand_dims(seq, 2)
