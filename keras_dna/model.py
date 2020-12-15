@@ -298,6 +298,7 @@ class ModelWrapper(object):
                              threshold=0.5,
                              meme_output=None,
                              normalize_output=True,
+                             return_stats=False,
                              layer='first_layer'):
         """
         Return the motif logos corresponding to the first layer of the model (if convolutional).
@@ -324,11 +325,11 @@ class ModelWrapper(object):
             generator_test = Generator(**command_dict)
 
         first_layer_model, pool_size = create_first_layer_model(self.model, layer)
-        pfms = find_pfm(generator_test,
-                        first_layer_model,
-                        pool_size,
-                        threshold,
-                        layer)
+        pfms, pc_activator_seq, nb_activations_per_seq = find_pfm(generator_test,
+                                                                  first_layer_model,
+                                                                  pool_size,
+                                                                  threshold,
+                                                                  layer)
 
         if meme_output:
             alphabet = 'ACGT'
@@ -339,7 +340,10 @@ class ModelWrapper(object):
             export_to_meme(pfms, meme_output, alphabet)
 
         if normalize_output:
-            return create_logos(pfms)
+            pfms = create_logos(pfms)
+
+        if return_stats:
+            return pfms, pc_activator_seq, nb_activations_per_seq
         else:
             return pfms
 

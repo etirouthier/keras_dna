@@ -51,7 +51,13 @@ def find_pfm_on_batch(sequences,
 
     kernel_indexes, seq_indexes, positions = np.where(activations >= threshold * max_activation)
     positions = positions * pool_size
-    return np.concatenate([extract_kernel_on_batch(kernel, sequences, kernel_indexes, seq_indexes, positions, length) for kernel in range(len(max_activation))], 0)
+    
+    number_activator_seq = [len(np.unique(seq_indexes[kernel_indexes == i]))\
+                            for i in range(activations.shape[2])]
+    number_activations = [len(seq_indexes[kernel_indexes == i])\
+                          for i in range(activations.shape[2])]
+    return np.concatenate([extract_kernel_on_batch(kernel, sequences, kernel_indexes, seq_indexes, positions, length) for kernel in range(len(max_activation))], 0),\
+np.array(number_activator_seq), np.array(number_activations)
 
 def extract_kernel_on_batch(kernel, sequence, kernel_indexes, seq_indexes, positions, length):
     if len(seq_indexes[kernel_indexes == kernel]) > 0:
@@ -72,26 +78,31 @@ def find_pfm(generator,
     for i in range(number_of_batches):
         if i == 0:
             sequences = next(new_generator)[0]
-            pfms = find_pfm_on_batch(sequences,
-                                     first_layer_model,
-                                     pool_size,
-                                     threshold,
-                                     layer)
+            nb_seq = len(sequences)
+            pfms, nb_act_seqs, nb_acts = find_pfm_on_batch(sequences,
+                                                           first_layer_model,
+                                                           pool_size,
+                                                           threshold,
+                                                           layer)
             normalizer = np.ones(pfms.shape)
             normalizer[np.sum(np.sum(pfms, axis=2), axis=1) == 0] = 0
 
         else:
             sequences = next(new_generator)[0]
-            pfm = find_pfm_on_batch(sequences,
-                                     first_layer_model,
-                                     pool_size,
-                                     threshold,
-                                     layer)
+            nb_seq += len(sequences)
+            pfm, nb_act_seq, nb_act = find_pfm_on_batch(sequences,
+                                                        first_layer_model,
+                                                        pool_size,
+                                                        threshold,
+                                                        layer)
             pfms += pfm
+            nb_act_seqs += nb_act_seq
+            nb_acts += nb_act
             counter = np.ones(pfms.shape)
             counter[np.sum(np.sum(pfm, axis=2), axis=1) == 0] = 0
             normalizer += counter
-    return pfms / normalizer
+
+    return pfms / normalizer, nb_act_seqs / nb_seq, nb_acts / nb_act_seqs
 
 def create_logos(pfm):
     pfm[pfm == 0] = 0.001
