@@ -52,7 +52,11 @@ def find_pfm_on_batch(sequences,
     if layer == 'first_layer':
         length = len(first_layer_model.layers[0].get_weights()[0])
     else:
-        length = len(first_layer_model.layers[2].get_weights()[0]) * pool_size \
+        if len(first_layer_model.layers) == 4:
+            conv_idx = 3
+        else:
+            conv_idx = 2
+        length = len(first_layer_model.layers[conv_idx].get_weights()[0]) * pool_size \
                 + len(first_layer_model.layers[0].get_weights()[0]) - 1 
 
     activations = first_layer_model.predict(sequences)
