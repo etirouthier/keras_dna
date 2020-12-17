@@ -11,12 +11,25 @@ import tensorflow.keras as keras
 
 
 def get_maximum_first_layer_activations(first_layer_model):
-    first_layer = first_layer_model.layers[0].get_weights()[0]
-    return np.sum(np.max(np.abs(first_layer), axis=1), axis=0)
+    first_layer, biases = first_layer_model.layers[0].get_weights()
+    return np.sum(np.max(np.abs(first_layer), axis=1), axis=0) + biases
 
 def get_maximum_second_layer_activations(first_layers_model):
-    second_layer = first_layers_model.layers[2].get_weights()[0]
-    return np.sum(np.max(np.abs(second_layer), axis=1), axis=0)
+    max_first_layer = get_maximum_first_layer_activations(first_layers_model)
+
+    second_layer, biases = first_layers_model.layers[-1].get_weights()
+    activation = first_layers_model.layers[0].activation
+    max_first_layer = activation(max_first_layer).numpy()
+
+    if len(first_layers_model.layers) == 4:
+        gamma, beta, mean, std = first_layers_model.layers[2].get_weights()
+        max_first_layer = gamma * (max_first_layer - mean) / std + beta
+
+    max_first_layer = np.tile(max_first_layer, [len(second_layer), second_layer.shape[2], 1])
+    max_first_layer = np.swapaxes(max_first_layer, 1, 2)
+
+    max_second_layer = max_first_layer * np.abs(second_layer)
+    return np.sum(np.sum(max_second_layer, axis=1), axis=0) + biases
 
 def find_pfm_on_batch(sequences,
                       first_layer_model,
@@ -53,9 +66,9 @@ def find_pfm_on_batch(sequences,
     positions = positions * pool_size
     
     number_activator_seq = [len(np.unique(seq_indexes[kernel_indexes == i]))\
-                            for i in range(activations.shape[2])]
+                            for i in range(len(activations))]
     number_activations = [len(seq_indexes[kernel_indexes == i])\
-                          for i in range(activations.shape[2])]
+                          for i in range(len(activations))]
     return np.concatenate([extract_kernel_on_batch(kernel, sequences, kernel_indexes, seq_indexes, positions, length) for kernel in range(len(max_activation))], 0),\
 np.array(number_activator_seq), np.array(number_activations)
 
@@ -128,18 +141,21 @@ def find_conv_index(model):
     conv1d_indexes = []
     conv2d_indexes = []
     maxpool_indexes = []
+    batchnorm_indexes = []
 
     for i, layer in enumerate(layers):
         if isinstance(layer, keras.layers.Conv1D):
             conv1d_indexes.append(i)
         if isinstance(layer, keras.layers.Conv2D):
             conv2d_indexes.append(i)
+        if isinstance(layer, keras.layers.BatchNormalization):
+            batchnorm_indexes.append(i)
 
     for i, dico in enumerate(model.get_config()['layers']):
         if dico['class_name'] == 'MaxPooling1D' or\
         dico['class_name'] == 'MaxPooling2D':
             maxpool_indexes.append(i)
-    return conv1d_indexes, conv2d_indexes, maxpool_indexes
+    return conv1d_indexes, conv2d_indexes, maxpool_indexes, batchnorm_indexes
 
 def add_conv_layer(model,
                    first_layers_model,
@@ -180,7 +196,7 @@ def add_conv_layer(model,
 
 def create_first_layer_model(model, layer='first_layer'):
     first_layers_model = keras.models.Sequential()
-    conv1d_indexes, conv2d_indexes, maxpool_indexes = find_conv_index(model)
+    conv1d_indexes, conv2d_indexes, maxpool_indexes, batchnorm_indexes = find_conv_index(model)
 
     if conv1d_indexes:
         if layer == 'first_layer':
@@ -215,6 +231,11 @@ def create_first_layer_model(model, layer='first_layer'):
             pool_size = 1
 
         first_layers_model.add(keras.layers.MaxPooling1D(pool_size, padding='valid'))
+
+        if batchnorm_indexes:
+            idx = batchnorm_indexes[0]
+            first_layers_model.add(keras.layers.BatchNormalization())
+            first_layers_model.layers[-1].set_weights(model.layers[idx].get_weights())
         
         if conv1d_indexes:
             add_conv_layer(model, first_layers_model, conv1d_indexes[1],
