@@ -205,6 +205,7 @@ class ModelWrapper(object):
                         goal,
                         wandb_user_name,
                         wandb_project_name,
+                        freeze_layer=None,
                         steps_per_epoch=None,
                         validation_steps=None,
                         test_optimizer=True,
@@ -225,6 +226,7 @@ class ModelWrapper(object):
 
         import wandb
         from wandb.keras import WandbCallback
+        self.freeze_layer = freeze_layer
 
         config = self.model.to_json()
         config = json.loads(config)
@@ -265,7 +267,7 @@ class ModelWrapper(object):
             config_defaults = create_default(self.sweep_config)
             wandb.init(config=config_defaults)
     
-            change_config(config, wandb.config)
+            change_config(config, wandb.config, self.freeze_layer)
             local_model = model_from_config(config)
     
             if test_optimizer:

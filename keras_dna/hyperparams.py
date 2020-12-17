@@ -289,7 +289,10 @@ def change_config_layer(dico_layer, wandb_config):
             dico_layer['config'][parameter] = wandb_config[layer_name + '_' + parameter]
     return dico_layer
 
-def change_config(config, wandb_config):
+def change_config(config, wandb_config, freeze_layer=None):
+    if freeze_layer:
+        dico_layer = np.delete(dico_layer, freeze_layer)
+
     for dico_layer in config['config']['layers'][:-1]:
         change_config_layer(dico_layer, wandb_config)
 
