@@ -23,12 +23,15 @@ def get_maximum_second_layer_activations(first_layers_model):
 
     if len(first_layers_model.layers) == 4:
         gamma, beta, mean, std = first_layers_model.layers[2].get_weights()
+        std[std < 10e-5] = 1
         max_first_layer = gamma * (max_first_layer - mean) / std + beta
 
     max_first_layer = np.tile(max_first_layer, [len(second_layer), second_layer.shape[2], 1])
     max_first_layer = np.swapaxes(max_first_layer, 1, 2)
 
-    max_second_layer = max_first_layer * np.abs(second_layer)
+    second_layer[second_layer < 0] = 0
+
+    max_second_layer = max_first_layer * second_layer
     return np.sum(np.sum(max_second_layer, axis=1), axis=0) + biases
 
 def find_pfm_on_batch(sequences,
