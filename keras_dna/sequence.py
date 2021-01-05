@@ -771,9 +771,10 @@ class ContinuousDataset(object):
             arguments from Normalizer class to normalize the data.
             default=None
         overlapping:
-            boolean, weither or not to return all the possible intervals, if
-            not only the intervals corresponding to non overlapping target will
-            be returned. default=True.
+            boolean or int, weither or not to return all the possible intervals, if
+            False only the intervals corresponding to non overlapping target will
+            be returned, if int the stride between the interval will be of int.
+            default=True.
         num_chr:
             if specified, 'chr' in the chromosome name will be dropped,
             default=False
@@ -901,11 +902,13 @@ class ContinuousDataset(object):
                 """stop in start_stop must be smaller than the chromosome size
                 minus the half of window"""
 
-        self.asteps=1
+        self.asteps = 1
+        if isinstance(self.overlapping, int):
+            self.asteps = self.overlapping
+
         if not self.downsampling:
             if not self.overlapping:
                 self.asteps = self.tg_window
-
         else:
             if not self.overlapping:
                 self.asteps = self.window

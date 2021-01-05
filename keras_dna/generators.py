@@ -381,6 +381,10 @@ class PredictionGenerator(object):
         rc:
             Weither or not to predict with reverse complemented DNA sequences.
             default=False
+        overlapping:
+            int or False, if int the intervals are overalpped with a stride of
+            int.
+            default=False
     """
     def __init__(self,
                  batch_size,
@@ -389,12 +393,14 @@ class PredictionGenerator(object):
                  incl_chromosomes,
                  start_stop=None,
                  fasta_file=None,
-                 rc=False):
+                 rc=False,
+                 overlapping=False):
         self.batch_size = batch_size
         self.command_dict = command_dict
         self.chrom_size = chrom_size
         self.start_stop = start_stop
         self.rc = rc
+        self.overlapping = overlapping
 
         if isinstance(incl_chromosomes, list):
             self.incl_chromosomes = incl_chromosomes
@@ -428,7 +434,7 @@ class PredictionGenerator(object):
             string_dict['fasta_file'] = fasta_file
 
         continuous_dict = {'ignore_targets' : True,
-                           'overlapping' : False,
+                           'overlapping' : self.overlapping,
                            'window' : self.window,
                            'incl_chromosomes' : self.incl_chromosomes,
                            'start_stop' : self.start_stop,

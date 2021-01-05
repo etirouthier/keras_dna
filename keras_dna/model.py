@@ -575,6 +575,7 @@ class ModelWrapper(object):
                 fasta_file=None,
                 export_to_path=None,
                 rc=False,
+                overlapping=False,
                 *args,
                 **kwargs):
         """
@@ -602,9 +603,15 @@ class ModelWrapper(object):
                 Path where the prediction will be exported in bigWig except if
                 it is None.
                 default: None
+            overlapping:
+                int or False, if int the prediction will be made with overlapping
+                windows with a stride of int.
+                default: False
         """
         assert chrom_size.endswith('chrom.sizes'), \
         """The name of the chrome_size file must finish by chrom.sizes"""
+        assert not (export_to_path and overlapping),\
+        '''export_to_path is not available with overlapping'''
         if self.generator_train.__class__.__name__ == 'MultiGenerator':
             command_dict = self.generator_train.command_dict[0]
         else:
@@ -619,7 +626,8 @@ class ModelWrapper(object):
                                                   incl_chromosomes,
                                                   start_stop,
                                                   fasta_file,
-                                                  rc)
+                                                  rc,
+                                                  overlapping)
 
         prediction = self.model.predict_generator(generator=self.pred_generator(),
                                                   steps=len(self.pred_generator),
