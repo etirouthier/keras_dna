@@ -307,10 +307,6 @@ class ModelWrapper(object):
         It is normalized as an information gain matrices. The result can also be exported in a 
         format compatible with MEME requirement (as a PFM).
         """
-        assert isinstance(self.model.layers[0], keras.layers.Conv1D) or\
-        isinstance(self.model.layers[0], keras.layers.Conv2D),\
-        """The model must begin with a convolutional layer to study the first filters logos"""
-
         assert hasattr(self.generator_train.dataset, 'seq_dl'),\
         """The generator must yield one-hot-encoded sequences."""
 
