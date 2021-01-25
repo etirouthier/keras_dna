@@ -122,7 +122,7 @@ class Generator(object):
         return generator_function(self.dataset, self.batch_size)
 
     def __len__(self):
-        return len(self.dataset) // self.batch_size
+        return len(self.dataset) // self.batch_size + 1
 
     @property
     def command_dict(self):
