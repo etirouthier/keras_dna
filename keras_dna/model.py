@@ -322,6 +322,8 @@ class ModelWrapper(object):
 
             if hasattr(self.generator_train.dataset.seq_dl.dataset, 'negative_type'):
                 command_dict['negative_type'] = None
+            if hasattr(self.generator_train.dataset.seq_dl.dataset, 'overlapping'):
+                command_dict['overlapping'] = False
 
             command_dict['weighting_mode'] = None
             generator_test = Generator(**command_dict)
