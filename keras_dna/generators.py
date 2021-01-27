@@ -93,7 +93,7 @@ class Generator(object):
         outputs)."""
         def generator_function(dataset, batch_size):
             indexes = np.arange(0, len(dataset), 1)
-            number_of_batches = len(dataset) // batch_size
+            number_of_batches = len(dataset) // batch_size + 1
             
             while True:
             # reshuffled the train set after an epoch

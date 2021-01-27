@@ -222,7 +222,7 @@ def create_first_layer_model(model, layer='first_layer'):
             activation = model.layers[conv2d_indexes[0]].activation
         add_conv_layer(model,
                        first_layers_model,
-                       conv1d_indexes[0],
+                       conv2d_indexes[0],
                        'Conv2D',
                        activation)
     else:
