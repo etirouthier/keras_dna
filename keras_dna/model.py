@@ -21,11 +21,12 @@ from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow.keras as keras
 
 
-from .generators import Generator, MultiGenerator, PredictionGenerator
+from .generators import Generator, MultiGenerator, PredictionGenerator, VariantEffectGenerator
 from .sequence import SeqIntervalDl, StringSeqIntervalDl
 from .evaluation import correlate
 from .layers import Project1D
 from .keras_utils import H5Dict
+from .utils import ProgressBar
 from .hyperparams import update_sweep_config, change_config, create_default
 from .kernel_analysis import create_first_layer_model, find_pfm, export_to_meme, create_logos
     
@@ -564,6 +565,88 @@ class ModelWrapper(object):
         
         return {'correlate_{}_{}'.format(int(idx / nb_annotation),\
                 idx % nb_annotation) : evaluations[idx + 1] for idx in indexes}
+    
+    def variant_effect(self,
+                       incl_chromosomes,
+                       chrom_size,
+                       start_stop=None,
+                       fasta_file=None,
+                       function=None,
+                       *args,
+                       **kwargs):
+        """
+        Function designed to predict the importance of every nucleotides in the
+        prediction.
+
+        args:
+            incl_chromosomes:
+                list of chromosomes to make the prediction on
+            chrom_size:
+                File with the size of chromosomes in two columns (tab separated)
+            start_stop:
+                list of tuple indicating where to start and stop predicting.
+                One per included chromosome. default=None
+            fasta_file:
+                Name of a fasta file to predict on (if None it will be the
+                file of the generator_train, or the first dataset if MultiGen).
+            function:
+                An python function instance that take a 3D array with shape (len, window, 4)
+                and return a measure of distance (len, 4) between the 4 rows and the first one.
+        """
+        assert chrom_size.endswith('chrom.sizes'), \
+        """The name of the chrome_size file must finish by chrom.sizes"""
+        if self.generator_train.__class__.__name__ == 'MultiGenerator':
+            command_dict = self.generator_train.command_dict[0]
+        else:
+            command_dict = self.generator_train.command_dict
+
+        if not isinstance(incl_chromosomes, list):
+            incl_chromosomes = [incl_chromosomes]
+
+        assert len(incl_chromosomes) == 1,\
+        """variant_effect can be called for one chromosome at a time only"""
+
+        self.variant_generator = VariantEffectGenerator(command_dict,
+                                                       chrom_size,
+                                                       incl_chromosomes,
+                                                       start_stop,
+                                                       fasta_file)
+
+        prediction = self.model.predict_generator(generator=self.variant_generator(),
+                                                  steps=len(self.variant_generator),
+                                                  *args,
+                                                  **kwargs)
+        if not function:
+            def function(x):
+                mutasome = np.zeros((len(x), 4))
+                mutasome[:, i] = np.mean(np.abs(x[:, :, 0] - x[:, :, i]), axis=1)
+                return mutasome
+
+        window = self.variant_generator.window
+        tg_window = self.variant_generator.tg_window
+        tg_downsampling = self.variant_generator.tg_downsampling
+        len_chrom = len(self.variant_generator) // 4 // window * tg_window
+        
+        if window % tg_window != 0:
+            return prediction
+        else:
+            if tg_downsampling:
+                mutasome = np.zeros((len_chrom, tg_downsampling, 4))
+            else:
+                mutasome = np.zeros((len_chrom, window, 4))
+            
+            progress = ProgressBar(valmin=(window - tg_window),
+                                   valmax=len_chrom - (window - tg_window),
+                                   maxbar=30,
+                                   title='Formating predictions')
+            for i in range((window - tg_window), len_chrom - (window - tg_window)):
+                progress.update(i)
+                for j in range(4):
+                    N = (i - (window - tg_window)) // tg_window
+                    k = (i - (window - tg_window)) % tg_window
+                    mutasome[i, :, j] = np.concatenate([prediction[N * window * 4 + k * 4 + j + (l + 1) * (window - tg_window)]\
+                                                        for l in range(window // tg_window)])
+            return function(mutasome)
                 
     def predict(self,
                 incl_chromosomes,

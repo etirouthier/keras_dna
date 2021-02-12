@@ -507,3 +507,117 @@ class PredictionGenerator(object):
                 df['stop'] = df.start.values + (df.last_index.values - df.first_index.values)\
                             * tg_window + tg_window
         return df
+
+
+class VariantEffectGenerator(object):
+    """
+    info:
+        doc: >
+            Takes the command dict of a Generator instance (or a SeqIntervalDl
+            or a StringSeqIntervalDl instance) and returns a generator needed
+            to the effect of individual mutations all along chromosomes.
+    
+    args:
+        chrom_size:
+            A .sizes file with the size of chromosomes in two columns.
+        command_dict:
+            An ArgumentsDict instance that described how the model was trained.
+        incl_chromosomes:
+            Chromosome to predict on (one by one as it is a long process)
+        start_stop:
+            list of tuple indicating where to start and stop generating data.
+            One per included chromosome. default=None
+        fasta_file:
+            A fasta_file to make prediction on (if None the same as in
+            command_dict)
+            default=None
+    """
+    def __init__(self,
+                 command_dict,
+                 chrom_size,
+                 incl_chromosomes,
+                 start_stop=None,
+                 fasta_file=None):
+        self.command_dict = command_dict
+        self.chrom_size = chrom_size
+        self.start_stop = start_stop
+
+        if isinstance(incl_chromosomes, list):
+            self.incl_chromosomes = incl_chromosomes
+        else:
+            self.incl_chromosomes = [incl_chromosomes]
+        self.detailed_dict = command_dict.get_details()
+
+        assert not 'keras_dna.sequence.SparseDataset' in self.detailed_dict,\
+        """Sparse mutation effect is not supported yet"""
+
+        if 'keras_dna.sequence.ContinuousDataset' in self.detailed_dict:
+            dataset_dict = self.detailed_dict['keras_dna.sequence.ContinuousDataset']
+            self.window = dataset_dict['window']
+
+            if dataset_dict['downsampling']:
+                self.tg_window = dataset_dict['window']
+                self.sampling_len = dataset_dict['window'] // dataset_dict['tg_window']
+                self.tg_downsampling = dataset_dict['tg_window']
+            else:
+                self.tg_window = dataset_dict['tg_window']
+                self.tg_downsampling = None
+
+        string_dict = deepcopy(self.detailed_dict['keras_dna.sequence.StringSeqIntervalDl'])
+        string_dict['annotation_files'] = self.chrom_size
+        string_dict['use_strand'] = False
+        string_dict['rc'] = False
+        if fasta_file:
+            string_dict['fasta_file'] = fasta_file
+
+        continuous_dict = {'ignore_targets' : True,
+                           'overlapping' : False,
+                           'window' : self.window,
+                           'incl_chromosomes' : self.incl_chromosomes,
+                           'start_stop' : self.start_stop,
+                           'tg_window' : self.tg_window}
+
+        if 'keras_dna.sequence.SeqIntervalDl' in self.detailed_dict:
+            self.input_dict = deepcopy(self.detailed_dict['keras_dna.sequence.SeqIntervalDl'])
+            self.input_dict.update(string_dict)
+            self.input_dict.update(continuous_dict)
+            self.dataset = SeqIntervalDl(**self.input_dict)
+        else:
+            self.input_dict = string_dict
+            self.input_dict.update(continuous_dict)
+            self.dataset = StringSeqIntervalDl(**self.input_dict)
+
+    def __len__(self):
+        return len(self.dataset) * self.window * 4
+
+    def __call__(self):
+        """Returns a generator to train a keras model (yielding inputs and
+        outputs)."""
+        def generator_function(dataset):
+            while True:
+                for num in range(len(dataset)):
+                    data = dataset[num]['inputs'][0]
+                    expanded_dims = None
+
+                    if len(data.shape) == 3:
+                        expanded_dims = np.where(np.array(data.shape) == 1)[0][0]
+
+                        if expanded_dims == 1:
+                            data = data[:, 0, :]
+                        else:
+                            data = data[:, :, 0]
+
+                    for i in range(len(data)):
+                        nucleotid = np.where(data[i] == 1)[0][0]
+                        loc_data = np.tile(data, [4, 1, 1])
+
+                        for j in range(4):
+                            if j > 0:
+                                loc_data[j, i, nucleotid] = 0
+                                loc_data[j, i, (nucleotid + j) % 4] = 1
+
+                        if expanded_dims:
+                            loc_data = np.expand_dims(loc_data, expanded_dims + 1)
+                        yield loc_data
+
+        return generator_function(self.dataset)

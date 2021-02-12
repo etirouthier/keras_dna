@@ -318,6 +318,36 @@ def rolling_window(array, window=(0,), asteps=None, wsteps=None, axes=None, toen
     return np.lib.stride_tricks.as_strided(array, shape=new_shape, strides=new_strides)
 
 
+class ProgressBar:
+    '''
+    Progress bar
+    '''
+    def __init__ (self, valmax, maxbar, title, valmin=0):
+        if valmax == 0:  valmax = 1
+        if maxbar > 200: maxbar = 200
+        self.valmax = valmax - valmin
+        self.valmin = valmin
+        self.maxbar = maxbar
+        self.title  = title
+    
+    def update(self, val):
+        import sys
+        # process
+        val = val - self.valmin
+        perc  = round((float(val) / float(self.valmax)) * 100)
+        scale = 100.0 / float(self.maxbar)
+        bar   = int(perc / scale)
+  
+        # render 
+        out = '\r{}/{} [{}{}{}] {}'.format(int(val),
+                                           int(self.valmax),
+                                           '=' * (bar - 1),
+                                           '>' * (1 - int(perc / 100)),
+                                           '.' * (self.maxbar - bar),
+                                           self.title)
+        sys.stdout.write(out)
+        sys.stdout.flush()
+        
 
 class ArgumentsDict(object):
     """
