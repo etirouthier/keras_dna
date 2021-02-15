@@ -627,13 +627,22 @@ class ModelWrapper(object):
         tg_downsampling = self.variant_generator.tg_downsampling
         len_chrom = len(self.variant_generator) // 4 // window * tg_window
         
+        number_annotation = 1
+        number_cell_types = 1
+        
+        if len(prediction.shape) == 3:
+            number_annotation = prediction.shape[2]
+        elif len(prediction.shape) == 4:
+            number_annotation = prediction.shape[2]
+            number_cell_types = prediction.shape[3]
+        
         if window % tg_window != 0:
             return prediction
         else:
             if tg_downsampling:
-                mutasome = np.zeros((len_chrom, tg_downsampling, 4))
+                mutasome = np.zeros((len_chrom, tg_downsampling, number_annotation, number_cell_types, 4))
             else:
-                mutasome = np.zeros((len_chrom, window, 4))
+                mutasome = np.zeros((len_chrom, window, number_annotation, number_cell_types, 4))
             
             progress = ProgressBar(valmin=(window - tg_window),
                                    valmax=len_chrom - (window - tg_window),
@@ -644,8 +653,16 @@ class ModelWrapper(object):
                 for j in range(4):
                     N = (i - (window - tg_window)) // tg_window
                     k = (i - (window - tg_window)) % tg_window
-                    mutasome[i, :, j] = np.concatenate([prediction[N * window * 4 + k * 4 + j + (l + 1) * (window - tg_window)]\
-                                                        for l in range(window // tg_window)])
+                    try:
+                        mutasome[i, :, :, :, j] = np.concatenate([prediction[N * window * 4 + k * 4 + j + (l + 1) * (window - tg_window)]\
+                                                                  for l in range(window // tg_window)])
+                    except ValueError:
+                        try:
+                            mutasome[i, :, :, 0, j] = np.concatenate([prediction[N * window * 4 + k * 4 + j + (l + 1) * (window - tg_window)]\
+                                                                      for l in range(window // tg_window)])
+                        except ValueError:
+                            mutasome[i, :, 0, 0, j] = np.concatenate([prediction[N * window * 4 + k * 4 + j + (l + 1) * (window - tg_window)]\
+                                                                      for l in range(window // tg_window)])
             return function(mutasome)
                 
     def predict(self,
