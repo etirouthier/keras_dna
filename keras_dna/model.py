@@ -618,8 +618,8 @@ class ModelWrapper(object):
                                                   **kwargs)
         if not function:
             def function(x):
-                mutasome = np.zeros((len(x), 4))
-                mutasome[:, i] = np.mean(np.abs(x[:, :, 0] - x[:, :, i]), axis=1)
+                mutasome = np.zeros((len(x), x.shape[2], x.shape[3], 4))
+                mutasome[:, :, :, i] = np.mean(np.abs(x[:, :, :, :, 0] - x[:, :, :, :, i]), axis=1)
                 return mutasome
 
         window = self.variant_generator.window
