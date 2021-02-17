@@ -7,6 +7,7 @@ Created on Fri Nov 13 11:30:24 2020
 """
 
 import numpy as np
+import math
 import tensorflow.keras as keras
 
 
@@ -265,7 +266,7 @@ def export_to_meme(logos, name, alphabet):
 
             for line in logos[i]:
                 for num in line:
-                    if num == 0:
+                    if num == 0 or math.isnan(num):
                         f.write('0.0\t')
                     else:
                         f.write(str(num)+'\t')
