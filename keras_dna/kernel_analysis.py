@@ -266,8 +266,10 @@ def export_to_meme(logos, name, alphabet):
 
             for line in logos[i]:
                 for num in line:
-                    if num == 0 or math.isnan(num):
+                    if num == 0:
                         f.write('0.0\t')
+                    elif math.isnan(num):
+                        f.write('0.25\t')
                     else:
                         f.write(str(num)+'\t')
 
